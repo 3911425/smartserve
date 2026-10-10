@@ -2,7 +2,7 @@
 
 ## 当前电脑的实际配置
 
-已检测到 Java17、Maven、Node22 和本机 PostgreSQL18。已创建项目专用的 `smartserve` 数据库，用户使用本地 `.env` 中的 PostgreSQL 账户和密码；文档与 GitHub 不保存这些凭证。当前库没有 pgvector，所以本机配置使用 PostgreSQL 持久业务 + Java中文BGE/余弦检索 + 本地有限工作池。DeepSeek与LangSmith均可单独开关。
+已检测到 Java17、Maven3.9.6、Node22 和本机 PostgreSQL18。已创建项目专用的 `smartserve` 数据库，用户使用本地 `.env` 中的 PostgreSQL 账户和密码；文档与 GitHub 不保存这些凭证。当前库没有 pgvector，所以本机配置使用 PostgreSQL 持久业务 + Java中文BGE/余弦检索 + 本地有限工作池。DeepSeek与LangSmith均可单独开关。
 
 你本机 `.env` 选择 `SPRING_PROFILES_ACTIVE=postgres-local`。换一台没有 PostgreSQL 的电脑可选择 demo，使用独立的 H2 文件。正式组件栈选 postgres，需要 pgvector、Redis、RabbitMQ。
 
@@ -19,7 +19,7 @@ cd E:\SmartServe
 powershell -ExecutionPolicy Bypass -File scripts/start.ps1
 ```
 
-首次执行构建后端并安装缺失的前端依赖，随后在后台启动两进程。访问 http://localhost:5173。日志在`.local/backend.out.log`与`.local/frontend.out.log`，首启模型索引可能需要30–90秒。窗口关闭不等于进程停止。
+本机通过 `.env` 的 MAVEN_EXECUTABLE 选择已安装的 Maven3.9.6，避免 PATH 中旧版 Maven。首次执行构建后端并安装缺失的前端依赖，随后在后台启动两进程。访问 http://localhost:5173。日志在`.local/backend.out.log`与`.local/frontend.out.log`，首启模型索引可能需要30–90秒。窗口关闭不等于进程停止。
 
 ```powershell
 # 已经构建过：
