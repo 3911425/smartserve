@@ -1,0 +1,72 @@
+server:
+  port: ${SERVER_PORT:8080}
+  address: ${SERVER_ADDRESS:127.0.0.1}
+spring:
+  application:
+    name: smartserve
+  profiles:
+    default: demo
+  sql:
+    init:
+      mode: always
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/runtime/smartserve-demo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE}
+    username: sa
+    password: ""
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER:smartserve}
+    password: ${RABBIT_PASSWORD:smartserve-local}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+smartserve:
+  data-path: ${SMARTSERVE_DATA_PATH:./data}
+  demo-access: ${DEMO_ACCESS:true}
+  llm-enabled: ${LLM_ENABLED:false}
+  deepseek-key: ${DEEPSEEK_API_KEY:}
+  deepseek-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+  deepseek-model: ${DEEPSEEK_MODEL:deepseek-chat}
+  langsmith-key: ${LANGSMITH_API_KEY:}
+  langsmith-url: ${LANGSMITH_ENDPOINT:https://api.smith.langchain.com}
+  langsmith-project: ${LANGSMITH_PROJECT:smartserve}
+  tracing-enabled: ${LANGSMITH_TRACING:false}
+  signing-secret: ${SESSION_SIGNING_SECRET:local-demo-change-before-deploy-32-characters}
+  mcp-secret: ${MCP_SERVICE_TOKEN:local-demo-mcp-token}
+  customer-token: ${CUSTOMER_API_TOKEN:}
+  admin-token: ${ADMIN_API_TOKEN:}
+  embeddings-enabled: ${EMBEDDINGS_ENABLED:true}
+  pgvector-enabled: ${PGVECTOR_ENABLED:true}
+  async-mode: ${ASYNC_MODE:local}
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartserve}
+    username: ${DB_USER:smartserve}
+    password: ${DB_PASSWORD:smartserve-local}
+smartserve:
+  async-mode: ${ASYNC_MODE:rabbit}
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres-local
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartserve}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:}
+smartserve:
+  async-mode: local
+  pgvector-enabled: false

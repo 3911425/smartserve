@@ -1,0 +1,91 @@
+name: smartserve
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: smartserve
+      POSTGRES_USER: ${DB_USER:-smartserve}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-smartserve-local}
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d smartserve"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7.4-alpine
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "${REDIS_PASSWORD:-smartserve-local}",
+      ]
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=$${REDIS_PASSWORD} redis-cli ping | grep PONG",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-smartserve-local}
+    restart: unless-stopped
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-smartserve}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD:-smartserve-local}
+    ports: ["127.0.0.1:5672:5672", "127.0.0.1:15672:15672"]
+    volumes: ["rabbit-data:/var/lib/rabbitmq"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  backend:
+    profiles: ["app"]
+    build: ./backend
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SMARTSERVE_DATA_PATH: /app/data
+      DB_URL: jdbc:postgresql://postgres:5432/smartserve
+      REDIS_HOST: redis
+      RABBIT_HOST: rabbitmq
+      ASYNC_MODE: rabbit
+      SERVER_PORT: 8080
+      SERVER_ADDRESS: 0.0.0.0
+    volumes: ["./data:/app/data:ro"]
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    healthcheck:
+      test:
+        ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/status"]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+      retries: 10
+    restart: unless-stopped
+  frontend:
+    profiles: ["app"]
+    build: ./frontend
+    ports: ["127.0.0.1:5173:80"]
+    depends_on:
+      backend: { condition: service_healthy }
+    restart: unless-stopped
+volumes:
+  postgres-data:
+  redis-data:
+  rabbit-data:

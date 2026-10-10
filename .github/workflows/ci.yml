@@ -1,0 +1,74 @@
+name: build-and-test
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mvn -B -ntp verify
+        working-directory: backend
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+  standard-stack:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: smartserve
+          POSTGRES_USER: smartserve
+          POSTGRES_PASSWORD: ci-local-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U smartserve -d smartserve"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      rabbit:
+        image: rabbitmq:4-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: smartserve
+          RABBITMQ_DEFAULT_PASS: ci-local-password
+        ports: ['5672:5672']
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+    env:
+      SMARTSERVE_STANDARD_TEST: 'true'
+      DB_URL: jdbc:postgresql://localhost:5432/smartserve
+      DB_USER: smartserve
+      DB_PASSWORD: ci-local-password
+      REDIS_PASSWORD: ''
+      RABBIT_USER: smartserve
+      RABBIT_PASSWORD: ci-local-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mvn -B -ntp -Dtest=StandardStackIntegrationTest test
+        working-directory: backend
