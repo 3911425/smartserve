@@ -156,7 +156,7 @@ npm run build
 
 这是一套能本地运行、适合学习和演示的工程项目。它没有接真实支付、物流商、仓库、短信或商业身份认证。演示角色切换默认开启；正式部署应关闭 `DEMO_ACCESS` 并接入真实身份服务。目前只有预配置客户/管理员凭证接口，尚未实现完整多租户身份平台。
 
-没有宣称百万并发、生产 SLA 或虚构 RAGAS 分数。RabbitMQ/Redis/pgvector 的配置与代码已提供，本机未安装 Docker 时，其集成效果须在标准环境进一步验证。详细验证记录见评估文档。
+没有宣称百万并发、生产 SLA 或虚构 RAGAS 分数。Java 21、前端构建以及 PostgreSQL/pgvector + Redis + RabbitMQ 的实际组件集成已通过 [GitHub CI](https://github.com/3911425/smartserve/actions/runs/38020051886)。完整 Docker Compose 应用部署尚未在本机执行。详细验证记录见评估文档。
 
 ## 仓库说明
 

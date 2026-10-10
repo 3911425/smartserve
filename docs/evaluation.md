@@ -23,7 +23,7 @@
 
 仓库提供`StandardStackIntegrationTest`：实际PG+pgvector512维向量、Redis写读、RabbitMQ消费持久任务、MCP调用和Checkpoint保存。GitHub Actions的standard-stack job启动三个容器并使用Java21。
 
-本机未安装Docker、现有PG没有pgvector，不能把本机测试说成已经验证完整组件组合。云端结果以对应GitHub Actions运行记录为准；最终结果会补在本节。
+云端实际验证已通过：[GitHub Actions 38020051886](https://github.com/3911425/smartserve/actions/runs/38020051886)。backend、frontend、standard-stack三个Job均成功；Java21下12项基础集成测试通过，PG+pgvector、Redis、RabbitMQ的2项标准栈测试通过。完整Docker Compose应用镜像部署尚未在本机执行，不能把组件集成测试等同于公网生产部署。
 
 ## 检索对比实验
 
