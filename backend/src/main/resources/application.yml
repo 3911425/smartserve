@@ -53,9 +53,12 @@ spring:
     activate:
       on-profile: postgres
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartserve}
+    url: ${DB_URL:jdbc:postgresql://localhost:15432/smartserve}
     username: ${DB_USER:smartserve}
     password: ${DB_PASSWORD:smartserve-local}
+  data:
+    redis:
+      port: ${REDIS_PORT:16379}
 smartserve:
   async-mode: ${ASYNC_MODE:rabbit}
 ---

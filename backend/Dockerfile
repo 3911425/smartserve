@@ -4,8 +4,9 @@ COPY pom.xml .
 RUN mvn -B -ntp dependency:go-offline
 COPY src src
 RUN mvn -B -ntp package -DskipTests
-FROM eclipse-temurin:21-jre-alpine
-RUN addgroup -S smartserve && adduser -S smartserve -G smartserve
+# The bundled Linux ONNX Runtime used by BGE requires glibc.
+FROM eclipse-temurin:21-jre-jammy
+RUN groupadd --system smartserve && useradd --system --gid smartserve --create-home smartserve
 WORKDIR /app
 COPY --from=build /build/target/smartserve-backend-1.0.0.jar app.jar
 USER smartserve
