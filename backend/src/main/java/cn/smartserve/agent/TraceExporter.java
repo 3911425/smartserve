@@ -60,7 +60,7 @@ public class TraceExporter {
         body.put("id", trace);
         body.put("trace_id", trace);
         body.put("dotted_order", dotted);
-        body.put("name", "SmartServe.Supervisor");
+        body.put("name", "SmartServe.V2.CustomerService");
         body.put("run_type", "chain");
         body.put("session_name", project);
         body.put("start_time", start);
@@ -106,7 +106,11 @@ public class TraceExporter {
           );
           span.put(
             "run_type",
-            "tool".equals(event.get("type")) ? "tool" : "chain"
+            "model".equals(event.get("type"))
+              ? "llm"
+              : "tool".equals(event.get("type"))
+                ? "tool"
+                : "chain"
           );
           span.put(
             "start_time",
@@ -127,6 +131,49 @@ public class TraceExporter {
               event.getOrDefault("status", "ok")
             )
           );
+          if ("model".equals(event.get("type"))) {
+            span.put(
+              "extra",
+              Map.of(
+                "metadata",
+                Map.of(
+                  "ls_provider",
+                  "deepseek",
+                  "ls_model_name",
+                  event.getOrDefault("model", "unknown"),
+                  "purpose",
+                  event.getOrDefault("purpose", ""),
+                  "attempt",
+                  event.getOrDefault("attempt", 1)
+                )
+              )
+            );
+            Object input = event.get("inputTokens"),
+              output = event.get("outputTokens");
+            if (input instanceof Number a && output instanceof Number b) {
+              span.put("prompt_tokens", a.intValue());
+              span.put("completion_tokens", b.intValue());
+              span.put("total_tokens", a.intValue() + b.intValue());
+              span.put(
+                "outputs",
+                Map.of(
+                  "usage_metadata",
+                  Map.of(
+                    "input_tokens",
+                    a.intValue(),
+                    "output_tokens",
+                    b.intValue(),
+                    "total_tokens",
+                    a.intValue() + b.intValue()
+                  )
+                )
+              );
+            }
+            if ("warning".equals(event.get("status"))) span.put(
+              "error",
+              "Model attempt failed; see local model_call record"
+            );
+          }
           post(span);
         }
         journal.event(
@@ -156,6 +203,11 @@ public class TraceExporter {
         );
       }
     });
+  }
+
+  @jakarta.annotation.PreDestroy
+  public void stop() {
+    executor.shutdownNow();
   }
 
   private static String dottedOrder(Instant time, String id) {

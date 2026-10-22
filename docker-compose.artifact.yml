@@ -1,0 +1,12 @@
+# Network-limited validation path; the regular Compose file still builds from source.
+services:
+  backend:
+    image: smartserve-backend:2.0.0-local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.artifact
+  frontend:
+    image: smartserve-frontend:2.0.0-local
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.artifact

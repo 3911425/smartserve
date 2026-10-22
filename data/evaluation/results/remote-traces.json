@@ -1,0 +1,36 @@
+{
+  "measuredAt": "2026-10-22T15:15:16.893Z",
+  "rows": [
+    {
+      "caseId": "A001",
+      "runId": "run-029ff2ca5c41347301585a9f",
+      "traceId": "2422296d-8d39-4710-831d-74909e4b3e5e",
+      "exportStatus": "ok",
+      "exportLabel": "脱敏追踪已导出",
+      "remoteStatus": 200,
+      "rootFound": true
+    },
+    {
+      "caseId": "A002",
+      "runId": "run-ae990bd14d41b3840a58515e",
+      "traceId": "31776421-162c-46d3-9bec-a93f20f1aa94",
+      "exportStatus": "ok",
+      "exportLabel": "脱敏追踪已导出",
+      "remoteStatus": 200,
+      "rootFound": true
+    },
+    {
+      "caseId": "A003",
+      "runId": "run-3440064b6a4c99890a4237b2",
+      "traceId": "94899bb1-6af1-4a4f-9cc5-181161efd840",
+      "exportStatus": "ok",
+      "exportLabel": "脱敏追踪已导出",
+      "remoteStatus": 200,
+      "rootFound": true
+    }
+  ],
+  "limitations": [
+    "Only synthetic benchmark questions were traced",
+    "API acceptance and root read-back do not verify every remote UI field or billing computation"
+  ]
+}

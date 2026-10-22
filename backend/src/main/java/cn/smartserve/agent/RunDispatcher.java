@@ -1,22 +1,22 @@
 package cn.smartserve.agent;
 
-import java.time.*;
-import java.util.*;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.concurrent.*;
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.*;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.*;
 import org.springframework.stereotype.Service;
 
 @Service
 @EnableScheduling
-public class RunDispatcher implements ApplicationRunner {
+public class RunDispatcher {
 
   private final RunJournal journal;
   private final AgentOrchestrator graph;
@@ -29,6 +29,9 @@ public class RunDispatcher implements ApplicationRunner {
   @Value("${WORKER_ENABLED:true}")
   boolean worker;
 
+  private volatile boolean ready;
+  private final ConcurrentHashMap<String, String> active =
+    new ConcurrentHashMap<>();
   private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
     4,
     4,
@@ -54,8 +57,16 @@ public class RunDispatcher implements ApplicationRunner {
     this.traces = traces;
   }
 
-  @Override
-  public void run(ApplicationArguments a) {}
+  @jakarta.annotation.PreDestroy
+  public void stop() {
+    ready = false;
+    executor.shutdownNow();
+  }
+
+  @EventListener(ApplicationReadyEvent.class)
+  public void ready() {
+    ready = true;
+  }
 
   public void submit(String id) {
     if (mode.equals("rabbit")) {
@@ -65,33 +76,37 @@ public class RunDispatcher implements ApplicationRunner {
         journal.event(
           id,
           "queue_retry",
-          Map.of(
+          java.util.Map.of(
             "agent",
             "Queue",
             "label",
-            "消息投递暂未完成，持久任务将重试",
+            "投递未完成，持久任务将重试",
             "status",
             "warning"
           )
         );
       }
-    } else if (worker) {
-      try {
-        executor.execute(() -> consume(id));
-      } catch (RejectedExecutionException e) {
-        /* QUEUED remains a durable outbox; scheduled dispatch retries. */
-      }
+    } else if (worker) try {
+      executor.execute(() -> consume(id));
+    } catch (RejectedExecutionException ignored) {
+      /* QUEUED is a durable outbox; recovery retries it. */
     }
   }
 
   @Scheduled(fixedDelay = 5000, initialDelay = 5000)
   public void recover() {
-    // Expired execution leases are retried from the persisted graph checkpoint.
+    if (!ready) return;
     journal
       .database()
       .jdbc.update(
-        "UPDATE agent_run SET status='QUEUED' WHERE status='RUNNING' AND updated_at<?",
-        java.sql.Timestamp.from(Instant.now().minusSeconds(180))
+        "UPDATE agent_run SET status='QUEUED',lease_token=NULL,lease_until=NULL WHERE status='RUNNING' AND lease_until<? AND attempts<3",
+        Timestamp.from(Instant.now())
+      );
+    journal
+      .database()
+      .jdbc.update(
+        "UPDATE agent_run SET status='FAILED',lease_token=NULL,lease_until=NULL WHERE (status='RUNNING' AND lease_until<? OR status='QUEUED') AND attempts>=3",
+        Timestamp.from(Instant.now())
       );
     for (String id : journal
       .database()
@@ -102,23 +117,26 @@ public class RunDispatcher implements ApplicationRunner {
       submit(id);
   }
 
+  @Scheduled(fixedDelay = 10000, initialDelay = 10000)
+  public void heartbeat() {
+    active.forEach((id, lease) -> {
+      if (!journal.heartbeat(id, lease)) active.remove(id, lease);
+    });
+  }
+
   public void consume(String id) {
-    if (!worker) return;
-    if (
-      journal
-        .database()
-        .jdbc.update(
-          "UPDATE agent_run SET status='RUNNING',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='QUEUED'",
-          id
-        ) !=
-      1
-    ) return;
-    try {
-      var result = graph.execute(id);
-      journal.finish(id, result);
+    if (!worker || !ready) return;
+    String lease = journal.claim(id);
+    if (lease == null) return;
+    active.put(id, lease);
+    try (var scope = ExecutionScope.enter(id, lease)) {
+      journal.finish(id, graph.execute(id), lease);
+    } catch (ExecutionScope.StaleExecutionException ignored) {
+      /* Never let a cancelled/expired execution overwrite a newer owner. */
     } catch (Exception e) {
-      journal.fail(id);
+      journal.fail(id, lease);
     } finally {
+      active.remove(id, lease);
       traces.export(id);
     }
   }
@@ -126,6 +144,12 @@ public class RunDispatcher implements ApplicationRunner {
   @Configuration
   @ConditionalOnProperty(name = "smartserve.async-mode", havingValue = "rabbit")
   static class RabbitWorker {
+
+    private final RunDispatcher dispatcher;
+
+    RabbitWorker(RunDispatcher dispatcher) {
+      this.dispatcher = dispatcher;
+    }
 
     @Bean
     org.springframework.amqp.core.Queue runs() {
@@ -145,14 +169,8 @@ public class RunDispatcher implements ApplicationRunner {
       concurrency = "2-4",
       autoStartup = "${WORKER_ENABLED:true}"
     )
-    void receive(String id, org.springframework.amqp.core.Message message) {
+    void receive(String id) {
       dispatcher.consume(id);
-    }
-
-    private final RunDispatcher dispatcher;
-
-    RabbitWorker(RunDispatcher dispatcher) {
-      this.dispatcher = dispatcher;
     }
   }
 }

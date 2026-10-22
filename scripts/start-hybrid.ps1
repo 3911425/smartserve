@@ -1,6 +1,7 @@
 ﻿param([switch]$Offline,[switch]$SkipBuild)
 $ErrorActionPreference='Stop'
 $taskRoot=Split-Path -Parent $PSScriptRoot
+& (Join-Path $PSScriptRoot 'init-env.ps1')
 
 # Start only this project's infrastructure. The existing Redis and Windows PG are independent.
 foreach ($taskPort in @(8080,5173)) {

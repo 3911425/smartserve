@@ -79,7 +79,7 @@ public class McpController {
           "capabilities",
           Map.of("tools", Map.of("listChanged", false)),
           "serverInfo",
-          Map.of("name", "smartserve-business-tools", "version", "1.0.0")
+          Map.of("name", "smartserve-business-tools", "version", "2.0.0")
         );
         case "ping" -> Map.of();
         case "tools/list" -> Map.of("tools", tools.definitions(agent));

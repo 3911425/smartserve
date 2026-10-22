@@ -1,0 +1,8 @@
+# Use only after a successful local Maven verification; no credentials enter this image.
+FROM eclipse-temurin:21-jre-jammy
+RUN groupadd --system smartserve && useradd --system --gid smartserve --create-home smartserve
+WORKDIR /app
+COPY target/smartserve-backend-2.0.0.jar app.jar
+USER smartserve
+EXPOSE 8080
+ENTRYPOINT ["java","-XX:MaxRAMPercentage=70","-jar","app.jar"]

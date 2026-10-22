@@ -19,8 +19,11 @@ public class BusinessService {
 
   public final JsonStore db;
 
-  public BusinessService(JsonStore db) {
+  private final CommerceService commerce;
+
+  public BusinessService(JsonStore db, CommerceService commerce) {
     this.db = db;
+    this.commerce = commerce;
   }
 
   public JsonStore database() {
@@ -28,29 +31,15 @@ public class BusinessService {
   }
 
   public List<Map<String, Object>> products() {
-    var order = List.of(
-      "lock-s1",
-      "camera-c2",
-      "bulb-l1",
-      "plug-p1",
-      "hub-h1",
-      "sensor-t1"
-    );
-    return db
-      .list("product", null)
-      .stream()
-      .sorted(Comparator.comparingInt(p -> order.indexOf(p.get("id"))))
-      .toList();
+    return commerce.products();
   }
 
   public List<Map<String, Object>> orders(Actor actor) {
-    return db.list("customer_order", actor.admin() ? null : actor.userId());
+    return commerce.orders(actor);
   }
 
   public Map<String, Object> order(Actor actor, String id) {
-    var m = db.require("customer_order", id);
-    Access.own(actor, (String) m.get("userId"));
-    return m;
+    return commerce.order(actor, id);
   }
 
   public Map<String, Object> conversation(Actor actor, String id) {
@@ -109,140 +98,28 @@ public class BusinessService {
     );
   }
 
-  public Map<String, Object> refundEligibility(Actor actor, String orderId) {
-    var o = order(actor, orderId);
-    boolean delivered = "DELIVERED".equals(o.get("status"));
-    long days = delivered
-      ? ChronoUnit.DAYS.between(
-          LocalDate.parse((String) o.get("deliveredAt")),
-          LocalDate.now(ZoneId.of("Asia/Shanghai"))
-        )
-      : 999;
-    return Map.of(
-      "orderId",
-      orderId,
-      "eligible",
-      delivered && days >= 0 && days <= 7,
-      "daysSinceDelivery",
-      days,
-      "amount",
-      o.get("amount"),
-      "policy",
-      "签收后7日内，商品及包装完整且未影响二次销售，可申请无理由退货；安装损坏、定制、耗材等例外需人工核验。",
-      "requiresConfirmation",
-      true,
-      "paymentMode",
-      "SIMULATED"
-    );
+  public Map<String, Object> refundEligibility(Actor actor, String id) {
+    return commerce.refundEligibility(actor, id);
   }
 
-  @Transactional
   public Map<String, Object> createRefund(
     Actor actor,
-    String orderId,
+    String id,
     String reason
   ) {
-    // Authorization precedes deduplication. Lock the order across all application instances.
-    order(actor, orderId);
-    db.jdbc.queryForList(
-      "SELECT id FROM customer_order WHERE id=? FOR UPDATE",
-      orderId
-    );
-    var existing = db.jdbc.queryForList(
-      "SELECT id FROM refund_request WHERE order_id=?",
-      orderId
-    );
-    if (!existing.isEmpty()) return refund(
-      actor,
-      (String) existing.get(0).get("id")
-    );
-    if (
-      !Boolean.TRUE.equals(refundEligibility(actor, orderId).get("eligible"))
-    ) throw new ResponseStatusException(
-      HttpStatus.CONFLICT,
-      "订单不满足自动退货条件，请提交服务升级单由人工核验"
-    );
-    String id = JsonStore.id("refund-");
-    var o = order(actor, orderId);
-    String owner = o.get("userId").toString();
-    String key = hash(owner + "|" + orderId + "|FULL_REFUND_V1");
-    db.jdbc.update(
-      "INSERT INTO refund_request(id,owner_id,order_id,idempotency_key,amount,status,reason) VALUES(?,?,?,?,?,'AWAITING_CONFIRMATION',?)",
-      id,
-      owner,
-      orderId,
-      key,
-      new BigDecimal(o.get("amount").toString()),
-      reason
-    );
-    return refund(actor, id);
+    return commerce.createRefund(actor, id, reason);
   }
 
   public Map<String, Object> refund(Actor actor, String id) {
-    var list = db.jdbc.queryForList(
-      "SELECT id,owner_id,order_id,amount,status,reason,created_at FROM refund_request WHERE id=?",
-      id
-    );
-    if (list.isEmpty()) throw new ResponseStatusException(
-      HttpStatus.NOT_FOUND,
-      "退款申请不存在"
-    );
-    var r = list.get(0);
-    Access.own(actor, (String) r.get("owner_id"));
-    return Map.of(
-      "id",
-      r.get("id"),
-      "orderId",
-      r.get("order_id"),
-      "amount",
-      r.get("amount"),
-      "status",
-      r.get("status"),
-      "reason",
-      r.get("reason"),
-      "paymentMode",
-      "SIMULATED"
-    );
+    return commerce.refund(actor, id);
   }
 
-  @Transactional
   public Map<String, Object> confirmRefund(
     Actor actor,
     String id,
     boolean confirmed
   ) {
-    if (!confirmed) throw new ResponseStatusException(
-      HttpStatus.BAD_REQUEST,
-      "请明确确认退款申请"
-    );
-    var r = refund(actor, id);
-    String orderId = (String) r.get("orderId");
-    db.jdbc.queryForList(
-      "SELECT id FROM customer_order WHERE id=? FOR UPDATE",
-      orderId
-    );
-    r = refund(actor, id);
-    if ("APPROVED".equals(r.get("status"))) return r;
-    var eligible = refundEligibility(actor, orderId);
-    if (
-      !Boolean.TRUE.equals(eligible.get("eligible"))
-    ) throw new ResponseStatusException(
-      HttpStatus.CONFLICT,
-      "订单状态已变化，请重新核验"
-    );
-    var o = order(actor, orderId);
-    o.put("status", "REFUND_PENDING");
-    db.update(
-      "customer_order",
-      orderId,
-      o,
-      ((Number) o.get("version")).intValue()
-    );
-    db.jdbc.update(
-      "UPDATE refund_request SET status='APPROVED' WHERE id=? AND status='AWAITING_CONFIRMATION'",
-      id
-    );
-    return refund(actor, id);
+    return commerce.confirmRefund(actor, id, confirmed);
   }
 
   @Transactional

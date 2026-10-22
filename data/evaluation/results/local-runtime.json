@@ -1,0 +1,47 @@
+{
+  "measuredAt": "2026-10-22T17:06:20.909Z",
+  "mode": "local",
+  "jarSha256": "256ee8ca56d4a93ca2eb434613201570cb8f6246c0939e1deaf1b71840f2b86f",
+  "buildMethod": "native-postgres-local",
+  "checks": [
+    {
+      "url": "http://localhost:5173/",
+      "status": 200,
+      "type": "text/html"
+    },
+    {
+      "url": "http://localhost:5173/api/status",
+      "status": 200,
+      "type": "application/json",
+      "body": {
+        "modelEnabled": true,
+        "version": "2.0.0",
+        "modelMode": "DeepSeek",
+        "demoAccess": false,
+        "knowledge": {
+          "vectorStore": "PostgreSQL / JVM余弦（本机配置）",
+          "documents": 4,
+          "revision": "23805d1f5ca1",
+          "chunks": 46,
+          "reranker": "语义/BM25/RRF加权融合（非神经重排）",
+          "embeddingModel": "bge-small-zh (ONNX, 512维)"
+        },
+        "name": "SmartServe",
+        "paymentMode": "SIMULATED"
+      }
+    },
+    {
+      "url": "http://localhost:5173/files/images/smart-home-hero.png",
+      "status": 200,
+      "type": "image/png"
+    },
+    {
+      "url": "http://localhost:5173/api/orders",
+      "status": 401,
+      "type": "application/json;charset=UTF-8"
+    }
+  ],
+  "limitations": [
+    "HTTP/assets/readiness and anonymous access only; full browser click workflow not verified"
+  ]
+}

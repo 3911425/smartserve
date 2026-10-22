@@ -1,0 +1,59 @@
+{
+  "release": "2.0.0",
+  "reportDate": "2026-10-23",
+  "backend": {
+    "core": {
+      "tests": 37,
+      "failures": 0,
+      "errors": 0
+    },
+    "standardStack": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "isolatedDatabase": true
+    },
+    "customerConsentBoundary": "admin create/confirm/cancel rejected; regression passed"
+  },
+  "frontend": {
+    "typecheckAndBuild": "passed",
+    "largeChunkWarning": true
+  },
+  "offlineTasks": {
+    "passed": 32,
+    "cases": 32,
+    "modelCalls": 0
+  },
+  "onlineSmoke": {
+    "passed": 3,
+    "cases": 3,
+    "applicationModelCalls": 12,
+    "knownTokens": 13147,
+    "judgeCallsIncludingDiagnostic": 6
+  },
+  "langsmith": {
+    "rootSpansReadBack": 3
+  },
+  "docker": {
+    "verifiedArtifactsFiveServiceRun": "passed",
+    "sourceBuild": "blocked_by_dependency_download_transport"
+  },
+  "browser": {
+    "loginAccessibilityTree": "observed",
+    "screenshotsAndFullClickWorkflow": "incomplete_session_binding_lost"
+  },
+  "businessHttpScript": {
+    "executed": false,
+    "reason": "execution_request_rejected_without_additional_reason"
+  },
+  "remoteGithubCi": "not_run_no_push",
+  "jarSha256": "256ee8ca56d4a93ca2eb434613201570cb8f6246c0939e1deaf1b71840f2b86f",
+  "handoff": {
+    "mode": "postgres-local",
+    "frontend": "http://localhost:5173",
+    "deepseekEnabled": true,
+    "evaluationServerStopped": true,
+    "projectContainersStopped": true,
+    "existingDatabaseAndVolumesRetained": true
+  }
+}

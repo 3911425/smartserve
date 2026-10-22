@@ -1,0 +1,52 @@
+{
+  "measuredAt": "2026-10-22T17:06:06.950Z",
+  "mode": "docker",
+  "jarSha256": "256ee8ca56d4a93ca2eb434613201570cb8f6246c0939e1deaf1b71840f2b86f",
+  "buildMethod": "verified-local-artifacts",
+  "checks": [
+    {
+      "url": "http://localhost:5173/",
+      "status": 200,
+      "type": "text/html"
+    },
+    {
+      "url": "http://localhost:5173/api/status",
+      "status": 200,
+      "type": "application/json",
+      "body": {
+        "modelMode": "DeepSeek",
+        "version": "2.0.0",
+        "modelEnabled": true,
+        "paymentMode": "SIMULATED",
+        "name": "SmartServe",
+        "knowledge": {
+          "vectorStore": "PostgreSQL / pgvector",
+          "embeddingModel": "bge-small-zh (ONNX, 512维)",
+          "reranker": "语义/BM25/RRF加权融合（非神经重排）",
+          "chunks": 46,
+          "revision": "23805d1f5ca1",
+          "documents": 4
+        },
+        "demoAccess": false
+      }
+    },
+    {
+      "url": "http://localhost:5173/files/images/smart-home-hero.png",
+      "status": 200,
+      "type": "image/png"
+    },
+    {
+      "url": "http://localhost:5173/api/orders",
+      "status": 401,
+      "type": "application/json;charset=UTF-8"
+    },
+    {
+      "url": "http://localhost:5173/api/mcp",
+      "status": 403,
+      "type": "text/html"
+    }
+  ],
+  "limitations": [
+    "HTTP/assets/readiness and anonymous access only; full browser click workflow not verified"
+  ]
+}

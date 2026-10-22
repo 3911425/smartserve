@@ -32,6 +32,9 @@ public class KnowledgeService implements ApplicationRunner {
   private EmbeddingModel model;
   private volatile List<Chunk> chunks = List.of();
   private volatile String revision = "";
+  private static final String MODEL_ID = "bge-small-zh:lc4j-0.36.2:512";
+  private static final String RETRIEVAL_VERSION =
+    "hybrid-v2.1-sku-boundary-business-domain";
 
   @Value("${smartserve.pgvector-enabled}")
   boolean pgvector;
@@ -43,7 +46,9 @@ public class KnowledgeService implements ApplicationRunner {
     String source,
     String heading,
     String content,
-    float[] vector
+    float[] vector,
+    String productCode,
+    String documentVersion
   ) {}
 
   public KnowledgeService(JsonStore db, StringRedisTemplate redis) {
@@ -85,6 +90,12 @@ public class KnowledgeService implements ApplicationRunner {
         .toList()) {
         String source = p.getFileName().toString();
         String content = Files.readString(p);
+        var versionMatcher = java.util.regex.Pattern.compile(
+          "(?m)^版本[：:]\\s*(\\S+)"
+        ).matcher(content);
+        String documentVersion = versionMatcher.find()
+          ? versionMatcher.group(1)
+          : "2.0";
         String[] sections = content.split("(?m)^## ");
         for (int i = 1; i < sections.length; i++) {
           String[] parts = sections[i].split("\\R", 2);
@@ -102,13 +113,14 @@ public class KnowledgeService implements ApplicationRunner {
             ).substring(0, 32);
             String hash = BusinessService.hash(heading + body);
             var old = db.jdbc.queryForList(
-              "SELECT content_hash,vector_text FROM knowledge_chunk WHERE id=?",
+              "SELECT content_hash,vector_text,model_id FROM knowledge_chunk WHERE id=?",
               id
             );
             float[] vector;
             if (
               !old.isEmpty() &&
               hash.equals(old.get(0).get("content_hash")) &&
+              MODEL_ID.equals(old.get(0).get("model_id")) &&
               (!embeddings || !"[]".equals(old.get(0).get("vector_text")))
             ) vector = db.mapper.readValue(
               (String) old.get(0).get("vector_text"),
@@ -127,12 +139,33 @@ public class KnowledgeService implements ApplicationRunner {
                 db.json(vector)
               );
             }
+            String productCode = inferProduct(heading);
+            db.jdbc.update(
+              "UPDATE knowledge_chunk SET model_id=?,product_code=?,document_version=?,category=? WHERE id=?",
+              MODEL_ID,
+              productCode,
+              documentVersion,
+              source.contains("政策") || source.contains("交易")
+                ? "policy"
+                : "manual",
+              id
+            );
             if (postgres && pgvector && vector.length > 0) db.jdbc.update(
               "UPDATE knowledge_chunk SET embedding=CAST(? AS vector) WHERE id=?",
               db.json(vector),
               id
             );
-            indexed.add(new Chunk(id, source, heading, body, vector));
+            indexed.add(
+              new Chunk(
+                id,
+                source,
+                heading,
+                body,
+                vector,
+                productCode,
+                documentVersion
+              )
+            );
           }
         }
       }
@@ -148,10 +181,14 @@ public class KnowledgeService implements ApplicationRunner {
       );
     chunks = List.copyOf(indexed);
     revision = BusinessService.hash(
-      indexed
-        .stream()
-        .map(c -> c.id() + c.content())
-        .collect(Collectors.joining())
+      MODEL_ID +
+        RETRIEVAL_VERSION +
+        indexed
+          .stream()
+          .map(
+            c -> c.id() + c.content() + c.productCode() + c.documentVersion()
+          )
+          .collect(Collectors.joining())
     );
     return stats();
   }
@@ -177,7 +214,7 @@ public class KnowledgeService implements ApplicationRunner {
       "revision",
       revision.substring(0, Math.min(12, revision.length())),
       "reranker",
-      "语义与词法加权重排"
+      "语义/BM25/RRF加权融合（非神经重排）"
     );
   }
 
@@ -236,14 +273,25 @@ public class KnowledgeService implements ApplicationRunner {
       } catch (Exception ignored) {}
     }
     float[] q = embed(query);
+    String productScope = inferProduct(query);
+    List<Chunk> chunks = this.chunks.stream()
+      .filter(
+        c ->
+          productScope.equals("all") ||
+          c.productCode().equals("all") ||
+          c.productCode().equals(productScope)
+      )
+      .toList();
     Map<String, Double> dense = new HashMap<>();
     if (postgres && pgvector && q.length > 0) {
       db.jdbc.query(
-        "SELECT id,1-(embedding <=> CAST(? AS vector)) AS score FROM knowledge_chunk WHERE embedding IS NOT NULL ORDER BY embedding <=> CAST(? AS vector) LIMIT 20",
+        "SELECT id,1-(embedding <=> CAST(? AS vector)) AS score FROM knowledge_chunk WHERE embedding IS NOT NULL AND (?='all' OR product_code='all' OR product_code=?) ORDER BY embedding <=> CAST(? AS vector) LIMIT 20",
         rs -> {
           dense.put(rs.getString("id"), rs.getDouble("score"));
         },
         db.json(q),
+        productScope,
+        productScope,
         db.json(q)
       );
     } else for (Chunk c : chunks) dense.put(c.id(), cosine(q, c.vector()));
@@ -251,11 +299,11 @@ public class KnowledgeService implements ApplicationRunner {
     Set<String> qt = tokens(query);
     double avg = chunks
       .stream()
-      .mapToInt(c -> tokens(c.heading() + c.content()).size())
+      .mapToInt(c -> terms(c.heading() + c.content()).size())
       .average()
       .orElse(1);
     for (Chunk c : chunks) {
-      var dt = tokens(c.heading() + c.content());
+      var dt = terms(c.heading() + c.content());
       double score = 0;
       for (String term : qt) {
         if (!dt.contains(term)) continue;
@@ -264,7 +312,9 @@ public class KnowledgeService implements ApplicationRunner {
           .filter(x -> tokens(x.heading() + x.content()).contains(term))
           .count();
         double idf = Math.log(1 + (chunks.size() - df + 0.5) / (df + 0.5));
-        score += (idf * 2.2) / (1 + 1.2 * (.25 + (.75 * dt.size()) / avg));
+        int tf = Collections.frequency(dt, term);
+        score +=
+          (idf * tf * 2.2) / (tf + 1.2 * (.25 + (.75 * dt.size()) / avg));
       }
       sparse.put(c.id(), score);
     }
@@ -281,14 +331,19 @@ public class KnowledgeService implements ApplicationRunner {
     var candidates = chunks
       .stream()
       .filter(
-        c -> denseOrder.indexOf(c.id()) < 20 || sparseOrder.indexOf(c.id()) < 20
+        c ->
+          (denseOrder.indexOf(c.id()) >= 0 &&
+            denseOrder.indexOf(c.id()) < 20) ||
+          (sparse.getOrDefault(c.id(), 0.0) > 0 &&
+            sparseOrder.indexOf(c.id()) >= 0 &&
+            sparseOrder.indexOf(c.id()) < 20)
       )
       .map(c -> {
         double semantic = dense.getOrDefault(c.id(), 0.0),
           lex = sparse.get(c.id()) / lexMax;
         double rrf =
-          1.0 / (61 + denseOrder.indexOf(c.id())) +
-          1.0 / (61 + sparseOrder.indexOf(c.id()));
+          reciprocalRank(denseOrder, c.id()) +
+          reciprocalRank(sparseOrder, c.id());
         double score = strategy.equals("vector")
           ? semantic
           : strategy.equals("bm25")
@@ -299,6 +354,8 @@ public class KnowledgeService implements ApplicationRunner {
         m.put("source", c.source());
         m.put("heading", c.heading());
         m.put("content", c.content());
+        m.put("productCode", c.productCode());
+        m.put("documentVersion", c.documentVersion());
         m.put("score", Math.round(score * 10000) / 10000.0);
         m.put("semanticScore", Math.round(semantic * 10000) / 10000.0);
         m.put("lexicalScore", Math.round(lex * 10000) / 10000.0);
@@ -332,7 +389,7 @@ public class KnowledgeService implements ApplicationRunner {
 
   private static boolean domainQuery(String query) {
     return java.util.regex.Pattern.compile(
-      "家居|设备|门锁|指纹|开门|摄像|录像|灯泡|插座|网关|温湿|温度计|供电|电池|配网|wifi|wi-fi|保修|售后|退款|退货|退钱|能退|换货|物流|订单|快递|联网|断网|隐私|安装|云存储|智能|5ghz|zigbee|matter|homekit|\\b(s1|c2|l1|p1|h1|t1)\\b",
+      "家居|设备|门锁|指纹|开门|摄像|录像|灯泡|插座|网关|温湿|温度计|供电|电池|配网|wifi|wi-fi|保修|售后|退款|退货|退钱|能退|换货|物流|订单|快递|联网|断网|隐私|安装|云存储|智能|5ghz|zigbee|matter|homekit|钱包|赠送|库存|购买|注册|登录|密码|管理员|工单|服务单|(?<![a-z0-9])(s1|c2|l1|p1|h1|t1)(?![a-z0-9])",
       java.util.regex.Pattern.CASE_INSENSITIVE
     )
       .matcher(query)
@@ -353,18 +410,51 @@ public class KnowledgeService implements ApplicationRunner {
   }
 
   static Set<String> tokens(String text) {
+    return new HashSet<>(terms(text));
+  }
+
+  static List<String> terms(String text) {
     String normalized = text
       .toLowerCase(Locale.ROOT)
       .replace("wifi", "wi-fi")
       .replace("联网", "网络")
       .replace("退钱", "退款")
       .replace("没电", "供电");
-    var result = new HashSet<String>();
+    var result = new ArrayList<String>();
     String s = normalized.replaceAll("[^\\p{L}\\p{N}]", "");
     for (int i = 0; i < s.length() - 1; i++) result.add(s.substring(i, i + 2));
     for (String term : normalized.split("[^a-z0-9]+"))
       if (term.length() > 1) result.add(term);
     return result;
+  }
+
+  static double reciprocalRank(List<String> order, String id) {
+    int rank = order.indexOf(id);
+    return rank < 0 ? 0 : 1.0 / (61 + rank);
+  }
+
+  static String inferProduct(String text) {
+    var matches = new ArrayList<String>();
+    String[] ids = {
+      "lock-s1",
+      "camera-c2",
+      "bulb-l1",
+      "plug-p1",
+      "hub-h1",
+      "sensor-t1",
+    };
+    String[] patterns = {
+      "(?i)(?<![a-z0-9])S1(?![a-z0-9])|智安|门锁",
+      "(?i)(?<![a-z0-9])C2(?![a-z0-9])|守望|摄像",
+      "(?i)(?<![a-z0-9])L1(?![a-z0-9])|晨光|灯泡",
+      "(?i)(?<![a-z0-9])P1(?![a-z0-9])|轻控|插座",
+      "(?i)(?<![a-z0-9])H1(?![a-z0-9])|联家|网关",
+      "(?i)(?<![a-z0-9])T1(?![a-z0-9])|知温|温湿度",
+    };
+    for (int i = 0; i < ids.length; i++) if (
+      java.util.regex.Pattern.compile(patterns[i]).matcher(text).find()
+    ) matches.add(ids[i]);
+    return matches.size() == 1 ? matches.get(0) : "all";
   }
 
   static double cosine(float[] a, float[] b) {

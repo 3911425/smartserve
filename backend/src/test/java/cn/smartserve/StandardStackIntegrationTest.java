@@ -28,6 +28,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
     "smartserve.tracing-enabled=false",
     "smartserve.data-path=../data",
     "smartserve.async-mode=rabbit",
+    "smartserve.bootstrap-admin-password=StandardTest-Only-2026",
+    "smartserve.bootstrap-customer-password=StandardCustomer-2026",
   }
 )
 class StandardStackIntegrationTest {

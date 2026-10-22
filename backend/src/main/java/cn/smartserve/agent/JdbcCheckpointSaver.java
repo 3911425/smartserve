@@ -50,7 +50,9 @@ public class JdbcCheckpointSaver implements BaseCheckpointSaver {
   }
 
   @Override
+  @org.springframework.transaction.annotation.Transactional
   public RunnableConfig put(RunnableConfig config, Checkpoint cp) {
+    ExecutionScope.check(db, true);
     String json = db.json(
       Map.of(
         "id",

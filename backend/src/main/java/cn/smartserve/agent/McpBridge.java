@@ -42,7 +42,7 @@ public class McpBridge {
         "capabilities",
         Map.of(),
         "clientInfo",
-        Map.of("name", "SmartServe.DomainWorker", "version", "1.0.0")
+        Map.of("name", "SmartServe.DomainWorker", "version", "2.0.0")
       ),
       true
     );

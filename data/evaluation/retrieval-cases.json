@@ -1,22 +1,627 @@
-[
-  {"question":"门锁没电了怎么应急开门？","relevant":["门锁没电了，怎样进门？","智安 S1：安装、供电与应急"]},
-  {"question":"S1门锁支持人脸识别吗？","relevant":["智安 S1：解锁方式与门体要求"]},
-  {"question":"门锁保修多久，断网还能开门吗？","relevant":["智安 S1：联网、隐私与保修"]},
-  {"question":"摄像头录像是不是必须买云存储？","relevant":["守望 C2：存储与云服务","摄像头录像是不是必须付费？"]},
-  {"question":"C2摄像头可以装室外淋雨吗？","relevant":["摄像头可以装室外、支持防水吗？","守望 C2：画质与查看范围"]},
-  {"question":"摄像头最大支持多大的存储卡？","relevant":["守望 C2：存储与云服务"]},
-  {"question":"L1灯泡是什么螺口和功率？","relevant":["晨光 L1：灯座、亮度与调光"]},
-  {"question":"灯泡断网以后还能用墙壁开关吗？","relevant":["灯泡断网还能开吗？","晨光 L1：配网与断网行为"]},
-  {"question":"智能插座最大支持多少瓦？","relevant":["轻控 P1：电气规格与使用边界","插座能控制空调、电暖器吗？"]},
-  {"question":"H1网关能连多少台设备，支持Matter吗？","relevant":["联家 H1：协议、容量与本地场景"]},
-  {"question":"温湿度计需要买网关吗？","relevant":["温湿度计必须买网关吗？","知温 T1：精度、电池与联动"]},
-  {"question":"温湿度计用什么电池，精度是多少？","relevant":["知温 T1：精度、电池与联动"]},
-  {"question":"我的WiFi是5GHz，能给设备配网吗？","relevant":["为什么设备搜不到 Wi-Fi？"]},
-  {"question":"退货申请需要用户确认吗？重复申请会退款两次吗？","relevant":["退款申请与用户确认","重复点击退款会扣款或退两次吗？"]},
-  {"question":"退款多久能到账？","relevant":["退款资金与到账时间"]},
-  {"question":"转人工以后到哪里看处理结果？","relevant":["转人工后去哪里看结果？","服务升级单：状态与时效"]},
-  {"question":"物流显示签收但是我没有收到怎么办？","relevant":["运输异常与签收争议"]},
-  {"question":"量子纠缠和黑洞霍金辐射的数学公式","relevant":[],"negative":true},
-  {"question":"怎样治疗流感并开处方药？","relevant":[],"negative":true},
-  {"question":"明天上海股票市场哪个股票会涨停？","relevant":[],"negative":true}
-]
+{
+  "version": "2.0-20261022",
+  "limitations": [
+    "72条固定AI辅助编写用例，维护者定义相关标题；非独立专家金标",
+    "regression与challenge用于报告分组，当前开发过程可见，不冒称未见过的盲测集",
+    "相关标题非穷尽，召回率可能低估同义FAQ证据；小知识库结果不外推生产",
+    "负例为跨领域拒答样本，不等于所有幻觉风险"
+  ],
+  "cases": [
+    {
+      "id": "R001",
+      "split": "challenge",
+      "question": "S1门锁能用人脸开门吗？",
+      "relevant": [
+        "智安 S1：解锁方式与门体要求"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R002",
+      "split": "regression",
+      "question": "智安S1可以录入多少指纹和密码？",
+      "relevant": [
+        "智安 S1：解锁方式与门体要求"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R003",
+      "split": "regression",
+      "question": "S1门厚50毫米能安装吗？",
+      "relevant": [
+        "智安 S1：解锁方式与门体要求"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R004",
+      "split": "challenge",
+      "question": "S1门锁临时密码最长可以用多久？",
+      "relevant": [
+        "智安 S1：解锁方式与门体要求"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R005",
+      "split": "regression",
+      "question": "S1门锁需要几节什么电池？",
+      "relevant": [
+        "智安 S1：安装、供电与应急"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R006",
+      "split": "regression",
+      "question": "智安门锁Type-C接口能给AA电池充电吗？",
+      "relevant": [
+        "智安 S1：安装、供电与应急"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R007",
+      "split": "challenge",
+      "question": "门锁低电量什么时候提醒？",
+      "relevant": [
+        "智安 S1：安装、供电与应急"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R008",
+      "split": "regression",
+      "question": "S1安装预约后多久联系？",
+      "relevant": [
+        "智安 S1：安装、供电与应急"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R009",
+      "split": "regression",
+      "question": "S1门锁可以连接5GHz网络吗？",
+      "relevant": [
+        "智安 S1：联网、隐私与保修"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R010",
+      "split": "challenge",
+      "question": "S1门锁断网后指纹能开门吗？",
+      "relevant": [
+        "智安 S1：联网、隐私与保修"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R011",
+      "split": "regression",
+      "question": "S1指纹图像会在App上展示吗？",
+      "relevant": [
+        "智安 S1：联网、隐私与保修"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R012",
+      "split": "regression",
+      "question": "S1门锁保修多久？",
+      "relevant": [
+        "智安 S1：联网、隐私与保修"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R013",
+      "split": "challenge",
+      "question": "C2摄像头能装在室外淋雨吗？",
+      "relevant": [
+        "守望 C2：画质与查看范围"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R014",
+      "split": "regression",
+      "question": "守望C2能用PoE供电吗？",
+      "relevant": [
+        "守望 C2：画质与查看范围"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R015",
+      "split": "regression",
+      "question": "C2摄像头水平旋转多少度？",
+      "relevant": [
+        "守望 C2：画质与查看范围"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R016",
+      "split": "challenge",
+      "question": "C2断电还能录像吗？",
+      "relevant": [
+        "守望 C2：画质与查看范围"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R017",
+      "split": "regression",
+      "question": "C2支持多大的存储卡？",
+      "relevant": [
+        "守望 C2：存储与云服务"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R018",
+      "split": "regression",
+      "question": "C2云存储多少钱一个月？",
+      "relevant": [
+        "守望 C2：存储与云服务"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R019",
+      "split": "challenge",
+      "question": "C2没买云存储还能看实时画面吗？",
+      "relevant": [
+        "守望 C2：存储与云服务"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R020",
+      "split": "regression",
+      "question": "摄像头内存满了如何处理录像？",
+      "relevant": [
+        "守望 C2：存储与云服务"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R021",
+      "split": "regression",
+      "question": "L1灯泡是什么螺口多少瓦？",
+      "relevant": [
+        "晨光 L1：灯座、亮度与调光"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R022",
+      "split": "challenge",
+      "question": "晨光L1可以用墙壁调光器吗？",
+      "relevant": [
+        "晨光 L1：灯座、亮度与调光"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R023",
+      "split": "regression",
+      "question": "L1色温范围是多少？",
+      "relevant": [
+        "晨光 L1：灯座、亮度与调光"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R024",
+      "split": "regression",
+      "question": "L1是否支持蓝牙独立控制？",
+      "relevant": [
+        "晨光 L1：灯座、亮度与调光"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R025",
+      "split": "challenge",
+      "question": "L1灯泡怎么进入配网模式？",
+      "relevant": [
+        "晨光 L1：配网与断网行为"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R026",
+      "split": "regression",
+      "question": "L1灯泡断网后还能用墙壁开关吗？",
+      "relevant": [
+        "晨光 L1：配网与断网行为"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R027",
+      "split": "regression",
+      "question": "L1离线期间云端定时能执行吗？",
+      "relevant": [
+        "晨光 L1：配网与断网行为"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R028",
+      "split": "challenge",
+      "question": "L1配网要关闭AP隔离吗？",
+      "relevant": [
+        "晨光 L1：配网与断网行为"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R029",
+      "split": "regression",
+      "question": "P1插座最大功率是多少？",
+      "relevant": [
+        "轻控 P1：电气规格与使用边界"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R030",
+      "split": "regression",
+      "question": "轻控P1插座需要网关吗？",
+      "relevant": [
+        "轻控 P1：电气规格与使用边界"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R031",
+      "split": "challenge",
+      "question": "P1最大电流多少A？",
+      "relevant": [
+        "轻控 P1：电气规格与使用边界"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R032",
+      "split": "regression",
+      "question": "P1插座能串联多个排插吗？",
+      "relevant": [
+        "轻控 P1：电气规格与使用边界"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R033",
+      "split": "regression",
+      "question": "H1网关最多能连接多少子设备？",
+      "relevant": [
+        "联家 H1：协议、容量与本地场景"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R034",
+      "split": "challenge",
+      "question": "H1支持Matter和Thread吗？",
+      "relevant": [
+        "联家 H1：协议、容量与本地场景"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R035",
+      "split": "regression",
+      "question": "H1断网时本地场景能执行吗？",
+      "relevant": [
+        "联家 H1：协议、容量与本地场景"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R036",
+      "split": "regression",
+      "question": "H1网关用什么供电？",
+      "relevant": [
+        "联家 H1：协议、容量与本地场景"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R037",
+      "split": "challenge",
+      "question": "T1温湿度计必须搭配H1吗？",
+      "relevant": [
+        "知温 T1：精度、电池与联动"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R038",
+      "split": "regression",
+      "question": "知温T1用什么电池？",
+      "relevant": [
+        "知温 T1：精度、电池与联动"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R039",
+      "split": "regression",
+      "question": "T1温度测量精度是多少？",
+      "relevant": [
+        "知温 T1：精度、电池与联动"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R040",
+      "split": "challenge",
+      "question": "T1最长多久上报一次数据？",
+      "relevant": [
+        "知温 T1：精度、电池与联动"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R041",
+      "split": "regression",
+      "question": "签收几天内能申请无理由退货？",
+      "relevant": [
+        "无理由退货：7日窗口"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R042",
+      "split": "regression",
+      "question": "门锁已经打孔安装还能自动退货吗？",
+      "relevant": [
+        "无理由退货：7日窗口"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R043",
+      "split": "challenge",
+      "question": "退款建议会自动生成申请吗？",
+      "relevant": [
+        "退款申请与用户确认"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R044",
+      "split": "regression",
+      "question": "退款申请用户确认后还要管理员审核吗？",
+      "relevant": [
+        "退款申请与用户确认"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R045",
+      "split": "regression",
+      "question": "历史演示订单退款会增加钱包余额吗？",
+      "relevant": [
+        "退款资金与到账时间"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R046",
+      "split": "challenge",
+      "question": "管理员退款批准后会自动恢复库存吗？",
+      "relevant": [
+        "退款资金与到账时间"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R047",
+      "split": "regression",
+      "question": "待发货订单能取消吗？",
+      "relevant": [
+        "订单取消与改址"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R048",
+      "split": "regression",
+      "question": "修改个人地址会改变历史订单地址吗？",
+      "relevant": [
+        "订单取消与改址"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R049",
+      "split": "challenge",
+      "question": "首次注册的模拟钱包有多少钱？",
+      "relevant": [
+        "模拟钱包与首次赠送"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R050",
+      "split": "regression",
+      "question": "重启服务会重新赠送一万元吗？",
+      "relevant": [
+        "模拟钱包与首次赠送"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R051",
+      "split": "regression",
+      "question": "购买商品库存不足会扣余额吗？",
+      "relevant": [
+        "商品购买与库存"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R052",
+      "split": "challenge",
+      "question": "购买请求重复提交会下两单吗？",
+      "relevant": [
+        "商品购买与库存"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R053",
+      "split": "regression",
+      "question": "普通注册能选择管理员身份吗？",
+      "relevant": [
+        "账号注册、登录与退出"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R054",
+      "split": "regression",
+      "question": "修改密码后旧登录会话还有效吗？",
+      "relevant": [
+        "账号注册、登录与退出"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R055",
+      "split": "challenge",
+      "question": "人工服务单有哪些状态？",
+      "relevant": [
+        "服务升级单：状态与时效"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R056",
+      "split": "regression",
+      "question": "管理员完成工单后回复去哪里看？",
+      "relevant": [
+        "服务升级单：状态与时效"
+      ],
+      "negative": false
+    },
+    {
+      "id": "R057",
+      "split": "challenge",
+      "question": "如何治疗流感开处方药？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R058",
+      "split": "challenge",
+      "question": "帮我预测明天股票涨跌",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R059",
+      "split": "challenge",
+      "question": "帮我编写一个排序算法",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R060",
+      "split": "challenge",
+      "question": "北京明天下雨吗？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R061",
+      "split": "challenge",
+      "question": "你知道世界杯谁夺冠吗？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R062",
+      "split": "challenge",
+      "question": "推荐一款咖啡豆",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R063",
+      "split": "challenge",
+      "question": "帮我写毕业论文致谢",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R064",
+      "split": "challenge",
+      "question": "房贷利率现在是多少？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R065",
+      "split": "challenge",
+      "question": "讲一段冷笑话",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R066",
+      "split": "challenge",
+      "question": "查询我其他银行的账户余额",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R067",
+      "split": "challenge",
+      "question": "怎么给汽车发动机换机油？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R068",
+      "split": "challenge",
+      "question": "法国首都是哪里？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R069",
+      "split": "challenge",
+      "question": "特斯拉自动驾驶收费多少？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R070",
+      "split": "challenge",
+      "question": "用什么药可以治疗糖尿病？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R071",
+      "split": "challenge",
+      "question": "今天午饭怎么做？",
+      "relevant": [],
+      "negative": true
+    },
+    {
+      "id": "R072",
+      "split": "challenge",
+      "question": "解释一下量子纠缠",
+      "relevant": [],
+      "negative": true
+    }
+  ]
+}

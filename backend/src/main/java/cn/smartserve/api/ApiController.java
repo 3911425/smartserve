@@ -49,24 +49,15 @@ public class ApiController {
     this.model = model;
   }
 
-  public record SessionInput(
-    @NotNull @Pattern(regexp = "customer|admin") String role
-  ) {}
-
-  @PostMapping("/demo/session")
-  Object session(@Valid @RequestBody SessionInput in) {
-    return access.issue(in.role());
-  }
-
   @GetMapping("/status")
   Object status() {
     return Map.of(
       "name",
       "SmartServe",
       "version",
-      "1.0.0",
+      "2.0.0",
       "demoAccess",
-      access.demo,
+      false,
       "modelEnabled",
       model.enabled,
       "modelMode",
@@ -189,7 +180,7 @@ public class ApiController {
             );
           }
           String state = runs.raw(id).get("status").toString();
-          if (Set.of("COMPLETED", "FAILED").contains(state)) {
+          if (Set.of("COMPLETED", "FAILED", "CANCELLED").contains(state)) {
             emitter.complete();
             cleanup.run();
           }
@@ -209,6 +200,46 @@ public class ApiController {
     @NotBlank @Size(max = 100) String orderId,
     @NotBlank @Size(max = 500) String reason
   ) {}
+
+  @PostMapping("/runs/{id}/cancel")
+  Object cancelRun(@PathVariable String id, HttpServletRequest request) {
+    return runs.cancel(Access.actor(request), id);
+  }
+
+  @GetMapping("/runs/{id}/model-calls")
+  Object modelCalls(@PathVariable String id, HttpServletRequest request) {
+    return runs.modelCalls(Access.actor(request), id);
+  }
+
+  public record Feedback(
+    boolean helpful,
+    @NotNull @Size(max = 500) String comment
+  ) {}
+
+  @PostMapping("/runs/{id}/feedback")
+  Object feedback(
+    @PathVariable String id,
+    @Valid @RequestBody Feedback in,
+    HttpServletRequest request
+  ) {
+    return runs.feedback(Access.actor(request), id, in.helpful(), in.comment());
+  }
+
+  @GetMapping("/admin/feedback")
+  Object feedbackList(HttpServletRequest request) {
+    return runs.feedbackList(Access.actor(request));
+  }
+
+  public record FeedbackReview(@NotBlank @Size(max = 500) String note) {}
+
+  @PostMapping("/admin/feedback/{id}/review")
+  Object reviewFeedback(
+    @PathVariable String id,
+    @Valid @RequestBody FeedbackReview in,
+    HttpServletRequest request
+  ) {
+    return runs.reviewFeedback(Access.actor(request), id, in.note());
+  }
 
   public record Confirmation(@AssertTrue boolean confirmed) {}
 

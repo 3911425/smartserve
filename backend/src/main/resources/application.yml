@@ -8,7 +8,11 @@ spring:
     default: demo
   sql:
     init:
-      mode: always
+      mode: never
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: "0"
   datasource:
     url: ${DB_URL:jdbc:h2:file:./data/runtime/smartserve-demo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE}
     username: sa
@@ -31,7 +35,17 @@ management:
         include: health,info
 smartserve:
   data-path: ${SMARTSERVE_DATA_PATH:./data}
-  demo-access: ${DEMO_ACCESS:true}
+  demo-access: false
+  bootstrap-admin-user: ${BOOTSTRAP_ADMIN_USER:admin}
+  bootstrap-admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+  bootstrap-customer-password: ${BOOTSTRAP_CUSTOMER_PASSWORD:}
+  secure-cookie: ${SECURE_COOKIE:false}
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080}
+  session-hours: ${SESSION_HOURS:12}
+  agent-max-turns: ${AGENT_MAX_TURNS:5}
+  agent-max-calls: ${AGENT_MAX_CALLS:10}
+  model-timeout-seconds: ${MODEL_TIMEOUT_SECONDS:45}
+  model-retries: ${MODEL_RETRIES:1}
   llm-enabled: ${LLM_ENABLED:false}
   deepseek-key: ${DEEPSEEK_API_KEY:}
   deepseek-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
@@ -42,8 +56,6 @@ smartserve:
   tracing-enabled: ${LANGSMITH_TRACING:false}
   signing-secret: ${SESSION_SIGNING_SECRET:local-demo-change-before-deploy-32-characters}
   mcp-secret: ${MCP_SERVICE_TOKEN:local-demo-mcp-token}
-  customer-token: ${CUSTOMER_API_TOKEN:}
-  admin-token: ${ADMIN_API_TOKEN:}
   embeddings-enabled: ${EMBEDDINGS_ENABLED:true}
   pgvector-enabled: ${PGVECTOR_ENABLED:true}
   async-mode: ${ASYNC_MODE:local}

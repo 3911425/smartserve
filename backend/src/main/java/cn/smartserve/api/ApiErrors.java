@@ -25,11 +25,23 @@ public class ApiErrors {
     {
       MethodArgumentNotValidException.class,
       org.springframework.http.converter.HttpMessageNotReadableException.class,
+      org.springframework.web.method.annotation
+        .HandlerMethodValidationException.class,
+      org.springframework.web.method.annotation
+        .MethodArgumentTypeMismatchException.class,
+      jakarta.validation.ConstraintViolationException.class,
     }
   )
   ResponseEntity<?> validation(Exception e) {
     return ResponseEntity.badRequest().body(
       Map.of("status", 400, "message", "请检查必填项、确认选项和输入长度")
+    );
+  }
+
+  @ExceptionHandler(org.springframework.dao.DuplicateKeyException.class)
+  ResponseEntity<?> conflict(Exception e) {
+    return ResponseEntity.status(409).body(
+      Map.of("status", 409, "message", "记录已存在，请刷新后重试或更换账号名")
     );
   }
 

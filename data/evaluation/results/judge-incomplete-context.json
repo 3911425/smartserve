@@ -1,0 +1,72 @@
+{
+  "measuredAt": "2026-10-22T15:11:33.882Z",
+  "source": "data/evaluation/results/agent-online.json",
+  "judgeCalls": 3,
+  "rows": [
+    {
+      "id": "A001",
+      "correctness": 1,
+      "faithfulness": 1,
+      "unsupportedClaims": [],
+      "reason": "答案完整覆盖参考要点：Type-C应急供电后验证指纹或密码、机械钥匙、不能给AA充电，且所有事实均可在S1/S2/S4中找到依据，无编造。",
+      "usage": {
+        "prompt_tokens": 762,
+        "completion_tokens": 62,
+        "total_tokens": 824,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 762
+      },
+      "model": "deepseek-flash"
+    },
+    {
+      "id": "A002",
+      "correctness": 1,
+      "faithfulness": 0.9,
+      "unsupportedClaims": [
+        "C2 售价 299 元，保修 12 个月，当前有货"
+      ],
+      "reason": "答案正确回应了云存储非必需、本地卡录像可用，与参考一致；主要事实有S1/S2支持，但售价、保修、库存信息在证据中无依据。",
+      "usage": {
+        "prompt_tokens": 719,
+        "completion_tokens": 81,
+        "total_tokens": 800,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 719
+      },
+      "model": "deepseek-flash"
+    },
+    {
+      "id": "A003",
+      "correctness": 1,
+      "faithfulness": 1,
+      "unsupportedClaims": [],
+      "reason": "答案准确回答64台，与参考一致；补充说明均有S1-S3证据支持，无编造事实。",
+      "usage": {
+        "prompt_tokens": 699,
+        "completion_tokens": 45,
+        "total_tokens": 744,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 699
+      },
+      "model": "deepseek-flash"
+    }
+  ],
+  "limitations": [
+    "自定义LLM-as-a-judge，不是RAGAS运行结果",
+    "同系列模型评审有偏差，须人工抽查；评分不能替代事务及权限断言",
+    "参考答案为项目维护者编写，未经独立领域专家标注",
+    "评审调用独立计费，不在应用AgentOps中，usage在本报告保存",
+    "First diagnostic run omitted verified tool facts; the C2 price/stock false positive is retained for failure analysis, not used as final evaluation."
+  ],
+  "evidenceContract": "knowledge-context-only",
+  "diagnosticOnly": true
+}

@@ -1,0 +1,68 @@
+{
+  "measuredAt": "2026-10-22T15:15:21.324Z",
+  "source": "data/evaluation/results/agent-online.json",
+  "evidenceContract": "knowledge-context-and-verified-tool-facts",
+  "judgeCalls": 3,
+  "rows": [
+    {
+      "id": "A001",
+      "correctness": 1,
+      "faithfulness": 1,
+      "unsupportedClaims": [],
+      "reason": "答案完整覆盖Type-C应急供电后验证指纹/密码、机械钥匙两种开门方式，并明确Type-C不充AA电池，与参考及S1/S2/S4一致；提醒内容均有知识片段依据，无与事实冲突之处。",
+      "usage": {
+        "prompt_tokens": 1324,
+        "completion_tokens": 72,
+        "total_tokens": 1396,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1324
+      },
+      "model": "deepseek-flash"
+    },
+    {
+      "id": "A002",
+      "correctness": 1,
+      "faithfulness": 1,
+      "unsupportedClaims": [],
+      "reason": "答案准确回答无需云存储即可录像，本地卡与云存储可选信息均与S1/S2一致；售价299元、保修12个月、有货与商品工具事实相符。",
+      "usage": {
+        "prompt_tokens": 1281,
+        "completion_tokens": 60,
+        "total_tokens": 1341,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1281
+      },
+      "model": "deepseek-flash"
+    },
+    {
+      "id": "A003",
+      "correctness": 1,
+      "faithfulness": 1,
+      "unsupportedClaims": [],
+      "reason": "答案准确回答H1最多连接64台兼容Zigbee子设备，与参考及知识片段S1/S2和商品事实一致；补充说明均有S1/S2/S3依据，无无依据声明。",
+      "usage": {
+        "prompt_tokens": 1261,
+        "completion_tokens": 66,
+        "total_tokens": 1327,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1261
+      },
+      "model": "deepseek-flash"
+    }
+  ],
+  "limitations": [
+    "自定义LLM-as-a-judge，不是RAGAS运行结果",
+    "同系列模型评审有偏差，须人工抽查；评分不能替代事务及权限断言",
+    "参考答案为项目维护者编写，未经独立领域专家标注",
+    "评审调用独立计费，不在应用AgentOps中，usage在本报告保存"
+  ]
+}

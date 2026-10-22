@@ -10,17 +10,46 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
           cache: maven
       - run: mvn -B -ntp verify
         working-directory: backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Start isolated offline evaluation server
+        working-directory: backend
+        env:
+          BOOTSTRAP_ADMIN_PASSWORD: CiEvaluation-Only-2026
+          LLM_ENABLED: "false"
+          LANGSMITH_TRACING: "false"
+        run: |
+          mkdir -p ../.local
+          nohup java -jar target/smartserve-backend-2.0.0.jar --server.port=18082 --spring.profiles.active=demo '--spring.datasource.url=jdbc:h2:mem:ci_evaluation;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1' --smartserve.data-path=../data --smartserve.async-mode=local --smartserve.pgvector-enabled=false > ../.local/evaluation.log 2>&1 &
+          printf 'SMARTSERVE_EVALUATION_PID=%s\n' "$!" >> "$GITHUB_ENV"
+      - name: Retrieval and bounded-task regression
+        run: |
+          node scripts/evaluate-retrieval.mjs --gate
+          node scripts/evaluate-agent.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: offline-evaluation
+          include-hidden-files: true
+          path: |
+            data/evaluation/results/retrieval-all.json
+            data/evaluation/results/agent-offline.json
+            .local/evaluation.log
+      - name: Stop evaluation process
+        if: always()
+        run: if [ -n "$SMARTSERVE_EVALUATION_PID" ]; then kill "$SMARTSERVE_EVALUATION_PID" || true; fi
   frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --no-audit --no-fund
@@ -36,13 +65,13 @@ jobs:
           POSTGRES_DB: smartserve
           POSTGRES_USER: smartserve
           POSTGRES_PASSWORD: ci-local-password
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U smartserve -d smartserve"
           --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
         image: redis:7.4-alpine
-        ports: ['6379:6379']
+        ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s --health-timeout 5s --health-retries 20
@@ -51,16 +80,16 @@ jobs:
         env:
           RABBITMQ_DEFAULT_USER: smartserve
           RABBITMQ_DEFAULT_PASS: ci-local-password
-        ports: ['5672:5672']
+        ports: ["5672:5672"]
         options: >-
           --health-cmd "rabbitmq-diagnostics -q ping"
           --health-interval 10s --health-timeout 5s --health-retries 20
     env:
-      SMARTSERVE_STANDARD_TEST: 'true'
+      SMARTSERVE_STANDARD_TEST: "true"
       DB_URL: jdbc:postgresql://localhost:5432/smartserve
       DB_USER: smartserve
       DB_PASSWORD: ci-local-password
-      REDIS_PASSWORD: ''
+      REDIS_PASSWORD: ""
       RABBIT_USER: smartserve
       RABBIT_PASSWORD: ci-local-password
     steps:
@@ -68,7 +97,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
           cache: maven
       - run: mvn -B -ntp -Dtest=StandardStackIntegrationTest test
         working-directory: backend
