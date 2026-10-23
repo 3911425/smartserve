@@ -26,6 +26,9 @@ public class RunDispatcher {
   @Value("${smartserve.async-mode}")
   String mode;
 
+  @Value("${smartserve.run-queue}")
+  String queue;
+
   @Value("${WORKER_ENABLED:true}")
   boolean worker;
 
@@ -71,7 +74,7 @@ public class RunDispatcher {
   public void submit(String id) {
     if (mode.equals("rabbit")) {
       try {
-        rabbit.convertAndSend("smartserve.runs", id);
+        rabbit.convertAndSend(queue, id);
       } catch (Exception e) {
         journal.event(
           id,
@@ -153,19 +156,19 @@ public class RunDispatcher {
 
     @Bean
     org.springframework.amqp.core.Queue runs() {
-      return QueueBuilder.durable("smartserve.runs")
+      return QueueBuilder.durable(dispatcher.queue)
         .deadLetterExchange("")
-        .deadLetterRoutingKey("smartserve.runs.dlq")
+        .deadLetterRoutingKey(dispatcher.queue + ".dlq")
         .build();
     }
 
     @Bean
     org.springframework.amqp.core.Queue deadLetters() {
-      return QueueBuilder.durable("smartserve.runs.dlq").build();
+      return QueueBuilder.durable(dispatcher.queue + ".dlq").build();
     }
 
     @RabbitListener(
-      queues = "smartserve.runs",
+      queues = "${smartserve.run-queue}",
       concurrency = "2-4",
       autoStartup = "${WORKER_ENABLED:true}"
     )

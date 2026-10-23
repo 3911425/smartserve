@@ -9,6 +9,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class SmartServeApplication {
 
   public static void main(String[] args) throws Exception {
+    // SQL TIMESTAMP fields and calendar-day service windows use one business zone
+    // in Windows, hybrid and Linux container runtimes.
+    TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
     // Process environment wins. Never log secrets; .env remains outside the artifact.
     for (Path path : List.of(Path.of("../.env"), Path.of(".env"))) {
       if (!Files.isRegularFile(path)) continue;

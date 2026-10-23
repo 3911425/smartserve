@@ -24,6 +24,7 @@ export const labels: Record<string, string> = {
   AWAITING_CONFIRMATION: "待客户确认",
   PENDING_REVIEW: "待管理员审核",
   REJECTED: "未通过",
+  WITHDRAWN: "已撤回",
   PENDING: "待处理",
   PROCESSING: "处理中",
   RESOLVED: "已完成",

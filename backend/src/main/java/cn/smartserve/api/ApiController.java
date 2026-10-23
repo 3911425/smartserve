@@ -56,6 +56,8 @@ public class ApiController {
       "SmartServe",
       "version",
       "2.0.0",
+      "businessRulesVersion",
+      "2.1-20261023",
       "demoAccess",
       false,
       "modelEnabled",
@@ -241,7 +243,7 @@ public class ApiController {
     return runs.reviewFeedback(Access.actor(request), id, in.note());
   }
 
-  public record Confirmation(@AssertTrue boolean confirmed) {}
+  public record Confirmation(@AssertTrue boolean confirmed, @NotNull @Min(0) Integer version) {}
 
   @PostMapping("/refunds")
   Object refund(@Valid @RequestBody RefundInput in, HttpServletRequest r) {
@@ -259,7 +261,7 @@ public class ApiController {
     @Valid @RequestBody Confirmation in,
     HttpServletRequest r
   ) {
-    return business.confirmRefund(Access.actor(r), id, in.confirmed());
+    return business.confirmRefund(Access.actor(r), id, in.confirmed(), in.version());
   }
 
   public record TicketInput(

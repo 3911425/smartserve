@@ -19,6 +19,23 @@ if ($Mode -eq 'demo') {
 foreach ($taskPort in @(8080,5173)) {
     if (Get-NetTCPConnection -LocalPort $taskPort -State Listen -ErrorAction SilentlyContinue) { throw "端口 $taskPort 已被占用；请先停止之前的服务。" }
 }
+$taskJar=Join-Path $taskRoot 'backend\target\smartserve-backend-2.0.0.jar'
+$taskBuildStamp=Join-Path $taskLocal 'backend-build.signature'
+function Get-TaskSourceHash {
+    $taskFiles=@(Get-ChildItem -LiteralPath (Join-Path $taskRoot 'backend\src\main') -Recurse -File)+@(Get-Item -LiteralPath (Join-Path $taskRoot 'backend\pom.xml'))
+    $taskSourceManifest=($taskFiles | Sort-Object FullName | ForEach-Object { $_.FullName.Substring($taskRoot.Length)+':'+(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }) -join "`n"
+    $taskHasher=[Security.Cryptography.SHA256]::Create()
+    try { return [BitConverter]::ToString($taskHasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($taskSourceManifest))).Replace('-','') } finally { $taskHasher.Dispose() }
+}
+$taskSourceHash=Get-TaskSourceHash
+if ($SkipBuild) {
+    $taskActualSignature=if(Test-Path -LiteralPath $taskJar){$taskSourceHash+':'+(Get-FileHash -LiteralPath $taskJar -Algorithm SHA256).Hash}else{''}
+    $taskSavedSignature=if(Test-Path -LiteralPath $taskBuildStamp){[IO.File]::ReadAllText($taskBuildStamp).Trim()}else{''}
+    if (!$taskActualSignature -or $taskActualSignature -ne $taskSavedSignature) {
+        Write-Host '源码或JAR与上次构建记录不一致，自动重新构建，确保两种本机启动方式使用新代码。'
+        $SkipBuild=$false
+    }
+}
 if (!$SkipBuild) {
     $taskMaven=$env:MAVEN_EXECUTABLE
     if (!$taskMaven) {
@@ -33,6 +50,8 @@ if (!$SkipBuild) {
     if (Test-Path -LiteralPath $taskRepository) { $taskMavenArgs+="-Dmaven.repo.local=$taskRepository" }
     Push-Location (Join-Path $taskRoot 'backend')
     try { & $taskMaven @taskMavenArgs; if ($LASTEXITCODE -ne 0) { throw '后端构建失败；请使用 Maven 3.9 并查看构建输出。' } } finally { Pop-Location }
+    if ((Get-TaskSourceHash) -ne $taskSourceHash) { throw '构建期间后端源码发生变化，请重新启动以构建一致版本。' }
+    [IO.File]::WriteAllText($taskBuildStamp,($taskSourceHash+':'+(Get-FileHash -LiteralPath $taskJar -Algorithm SHA256).Hash))
 }
 $taskJar=Join-Path $taskRoot 'backend\target\smartserve-backend-2.0.0.jar'
 if (!(Test-Path -LiteralPath $taskJar)) { throw '找不到后端JAR；请先构建项目。' }

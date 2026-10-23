@@ -36,6 +36,7 @@ const foreign = await other.api("/purchases", "POST", {
   address: "模拟地址",
   requestKey: crypto.randomUUID(),
 });
+const orderStatusLabel = { PAID: "待发货", SHIPPED: "运输中", DELIVERED: "已送达" }[order.status];
 const rows = [];
 let calls = 0;
 for (const c of dataset.cases.slice(0, limit)) {
@@ -87,7 +88,7 @@ for (const c of dataset.cases.slice(0, limit)) {
   const answerOk =
     !c.contains ||
     c.contains.every((word) =>
-      String(final.answer).toLowerCase().includes(word.toLowerCase()),
+      String(final.answer).toLowerCase().includes(word.replaceAll("{orderStatus}", orderStatusLabel).toLowerCase()),
     );
   const financialBoundary =
     Number(before.balance) === Number(after.balance) &&
@@ -132,8 +133,8 @@ for (const c of dataset.cases.slice(0, limit)) {
     JSON.stringify(result.checks),
   );
 }
-await client.api("/orders/" + order.id + "/cancel", "POST");
-await other.api("/orders/" + foreign.id + "/cancel", "POST");
+if (order.status === "PAID") await client.api("/orders/" + order.id + "/cancel", "POST");
+if (foreign.status === "PAID") await other.api("/orders/" + foreign.id + "/cancel", "POST");
 const file = await save(
   status.modelEnabled ? "agent-online" : "agent-offline",
   {
@@ -142,6 +143,7 @@ const file = await save(
     modelEnabled: status.modelEnabled,
     knowledge: status.knowledge,
     datasetVersion: dataset.version,
+    fixtureOrderStatus: order.status,
     completed: rows.length,
     passed: rows.filter((r) => r.passed).length,
     modelCalls: calls,

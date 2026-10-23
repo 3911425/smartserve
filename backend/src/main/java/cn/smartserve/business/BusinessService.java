@@ -117,9 +117,10 @@ public class BusinessService {
   public Map<String, Object> confirmRefund(
     Actor actor,
     String id,
-    boolean confirmed
+    boolean confirmed,
+    int version
   ) {
-    return commerce.confirmRefund(actor, id, confirmed);
+    return commerce.confirmRefund(actor, id, confirmed, version);
   }
 
   @Transactional
@@ -134,6 +135,7 @@ public class BusinessService {
     String requestKey,
     boolean confirmed
   ) {
+    if (actor.admin()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "人工服务单须由客户本人提交");
     var c = conversation(actor, conv);
     if (!confirmed) throw new ResponseStatusException(
       HttpStatus.BAD_REQUEST,
@@ -150,6 +152,8 @@ public class BusinessService {
     var old = db.find("escalation_ticket", id);
     if (old.isPresent()) {
       Access.own(actor, (String) old.get().get("userId"));
+      var previous = old.get();
+      if (!Objects.equals(previous.get("orderId"), orderId) || !Objects.equals(previous.get("title"), title) || !Objects.equals(previous.get("details"), details) || !Objects.equals(previous.get("contact"), contact) || !Objects.equals(previous.get("priority"), priority)) throw new ResponseStatusException(HttpStatus.CONFLICT, "同一提交编号不能对应不同的服务单内容");
       return publicTicket(actor, old.get());
     }
     var t = new LinkedHashMap<String, Object>();

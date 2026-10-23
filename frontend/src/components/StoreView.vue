@@ -12,7 +12,7 @@ import {
 } from "lucide-vue-next";
 import { ElMessage } from "element-plus";
 import { api } from "../api";
-import { money, type Entity } from "../format";
+import { labels, money, type Entity } from "../format";
 const props = defineProps<{
   user: Entity;
   refreshKey: number;
@@ -84,7 +84,7 @@ async function pay() {
     checkout.value = false;
     selected.value = null;
     await load();
-    ElMessage.success("购买成功，已生成订单");
+    ElMessage.success(`购买成功，本次模拟配送状态：${labels[order.status]}`);
     emit("purchased", order);
   } catch (e) {
     ElMessage.error((e as Error).message);
@@ -270,6 +270,7 @@ async function pay() {
             <p>¥{{ money(selected.price) }} / 件</p>
           </div>
         </div>
+        <p class="checkout-note">本项目使用模拟余额。支付成功后一次性随机生成待发货、运输中或已送达场景，方便体验不同阶段的订单与售后服务。</p>
         <label
           >购买数量<el-input-number
             v-model="form.quantity"

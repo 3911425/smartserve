@@ -1,6 +1,7 @@
 package cn.smartserve;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 import cn.smartserve.agent.*;
 import cn.smartserve.business.*;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(
   webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
@@ -38,6 +40,9 @@ import org.springframework.http.*;
   }
 )
 class SmartServeIntegrationTest {
+
+  @MockitoBean
+  FulfillmentSimulator fulfillment;
 
   @Autowired
   AuthService auth;
@@ -76,6 +81,7 @@ class SmartServeIntegrationTest {
 
   @BeforeEach
   void fixture() {
+    when(fulfillment.initialStatus()).thenReturn("PAID");
     username = "test-" + UUID.randomUUID().toString().substring(0, 12);
     var user = auth.register(username, PASSWORD, "测试客户");
     customer = new Actor(user.get("id").toString(), false);
@@ -489,6 +495,106 @@ class SmartServeIntegrationTest {
   }
 
   @Test
+  void eachSimulatedFulfillmentStateHasCoherentEventsAndStableReplay() {
+    for (String state : List.of("PAID", "SHIPPED", "DELIVERED")) {
+      when(fulfillment.initialStatus()).thenReturn(state);
+      String key = UUID.randomUUID().toString();
+      var order = commerce.purchase(customer, purchaseInput(key));
+      assertThat(order.get("status")).isEqualTo(state);
+      assertThat((List<?>) order.get("events")).hasSize(state.equals("PAID") ? 1 : state.equals("SHIPPED") ? 2 : 3);
+      assertThat(order.get("trackingNumber").toString().isBlank()).isEqualTo(state.equals("PAID"));
+      assertThat(order.get("shippedAt").toString().isBlank()).isEqualTo(state.equals("PAID"));
+      assertThat(order.get("deliveredAt").toString().isBlank()).isEqualTo(!state.equals("DELIVERED"));
+      var options = (Map<?, ?>) order.get("serviceOptions");
+      assertThat(options.get("canCancel")).isEqualTo(state.equals("PAID"));
+      assertThat(options.get("canApplyRefund")).isEqualTo(state.equals("DELIVERED"));
+      when(fulfillment.initialStatus()).thenReturn("DELIVERED");
+      var replay = commerce.purchase(customer, purchaseInput(key));
+      assertThat(replay.get("id")).isEqualTo(order.get("id"));
+      assertThat(replay.get("status")).isEqualTo(state);
+    }
+    assertThat(balance()).isEqualByComparingTo("9823");
+  }
+
+  @Test
+  void unshippedAfterSalesOffersCancellationWithoutFinancialWrites() {
+    var order = buy();
+    var answer = run("订单 " + order.get("id") + " 我想取消，不想要了");
+    assertThat(answer.get("cancellationProposal")).isNotNull();
+    assertThat(answer.get("needsEscalation")).isEqualTo(false);
+    assertThat(commerce.order(customer, order.get("id").toString()).get("status")).isEqualTo("PAID");
+    assertThat(balance()).isEqualByComparingTo("9941");
+  }
+
+  @Test
+  void withdrawnAndRejectedRefundsCanBeResubmittedButStaleConsentCannotConfirm() {
+    var order = deliver(buy());
+    String orderId = order.get("id").toString();
+    var draft = commerce.createRefund(customer, orderId, "初次原因");
+    String id = draft.get("id").toString();
+    commerce.withdrawRefund(customer, id, 0);
+    var reopened = commerce.createRefund(customer, orderId, "补充材料后的原因");
+    assertThatThrownBy(() -> commerce.confirmRefund(customer, id, true, 0)).hasMessageContaining("409");
+    var pending = commerce.confirmRefund(customer, id, true, ((Number) reopened.get("version")).intValue());
+    commerce.reviewRefund(ADMIN, id, false, false, "需要补充说明", ((Number) pending.get("version")).intValue());
+    var revised = commerce.createRefund(customer, orderId, "已补齐材料");
+    var confirmed = commerce.confirmRefund(customer, id, true, ((Number) revised.get("version")).intValue());
+    commerce.withdrawRefund(customer, id, ((Number) confirmed.get("version")).intValue());
+    assertThat(commerce.order(customer, orderId).get("status")).isEqualTo("DELIVERED");
+    assertThat(balance()).isEqualByComparingTo("9941");
+  }
+
+  @Test
+  void returnWindowAndFulfillmentRemainDistinctFromServiceEvents() {
+    var order = deliver(buy());
+    String id = order.get("id").toString();
+    commerce.createRefund(customer, id, "退货咨询");
+    assertThat(commerce.order(customer, id).get("logistics").toString()).contains("签收");
+    for (int days : List.of(-1, 0, 7, 8)) {
+      db.jdbc.update("UPDATE shop_order SET delivered_at=? WHERE id=?", Timestamp.from(LocalDate.now(ZoneId.of("Asia/Shanghai")).minusDays(days).atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant()), id);
+      assertThat(commerce.refundEligibility(customer, id).get("eligible")).isEqualTo(days >= 0 && days <= 7);
+    }
+  }
+
+  @Test
+  void refundReviewCannotReverseACompletedDecisionOrRestockARejection() {
+    var order = deliver(buy());
+    var draft = commerce.createRefund(customer, order.get("id").toString(), "完整退款测试");
+    String id = draft.get("id").toString();
+    var pending = commerce.confirmRefund(customer, id, true, 0);
+    int version = ((Number) pending.get("version")).intValue();
+    assertThatThrownBy(() -> commerce.reviewRefund(ADMIN, id, false, true, "拒绝但入库", version)).hasMessageContaining("400");
+    var completed = commerce.reviewRefund(ADMIN, id, true, true, "核验通过", version);
+    assertThat((List<?>) completed.get("history")).hasSize(3);
+    assertThatThrownBy(() -> commerce.reviewRefund(ADMIN, id, false, false, "改为拒绝", version)).hasMessageContaining("409");
+    assertThat(balance()).isEqualByComparingTo("10000");
+  }
+
+  @Test
+  void ticketIdempotencyAndCustomerConsentAreEnforced() {
+    String conv = business.newConversation(customer).get("id").toString();
+    String key = UUID.randomUUID().toString();
+    var first = business.createTicket(customer, conv, "", "服务咨询", "核验问题", "测试联系", "NORMAL", key, true);
+    assertThat(business.createTicket(customer, conv, "", "服务咨询", "核验问题", "测试联系", "NORMAL", key, true).get("id")).isEqualTo(first.get("id"));
+    assertThatThrownBy(() -> business.createTicket(customer, conv, "", "不同问题", "核验问题", "测试联系", "NORMAL", key, true)).hasMessageContaining("409");
+    assertThatThrownBy(() -> business.createTicket(ADMIN, conv, "", "代客户提交", "核验问题", "测试联系", "NORMAL", key, true)).hasMessageContaining("403");
+  }
+
+  @Test
+  void orderPaginationAndSummaryAreScopedToTheCustomer() {
+    for (int i = 0; i < 21; i++) buy();
+    var first = commerce.pageOrders(customer, "", "PAID", 1);
+    assertThat(first.get("total")).isEqualTo(21);
+    assertThat(first.get("hasNext")).isEqualTo(true);
+    assertThat((List<?>) first.get("items")).hasSize(20);
+    var second = commerce.pageOrders(customer, "", "PAID", 2);
+    assertThat((List<?>) second.get("items")).hasSize(1);
+    assertThat(second.get("hasNext")).isEqualTo(false);
+    assertThatThrownBy(() -> commerce.pageOrders(customer, "", "BOGUS", 1)).hasMessageContaining("400");
+    assertThatThrownBy(() -> commerce.pageOrders(customer, "", "", 0)).hasMessageContaining("400");
+  }
+
+  @Test
   void refundProposalDoesNotWriteAnApplication() {
     var order = deliver(buy());
     var proposal = commerce.prepareRefund(
@@ -520,7 +626,7 @@ class SmartServeIntegrationTest {
         .distinct()
     ).hasSize(1);
     String refund = ((Map<?, ?>) drafts.get(0)).get("id").toString();
-    var pending = commerce.confirmRefund(customer, refund, true);
+    var pending = commerce.confirmRefund(customer, refund, true, 0);
     assertThat(balance()).isEqualByComparingTo("9941");
     concurrently(12, () ->
       commerce.reviewRefund(
@@ -551,7 +657,7 @@ class SmartServeIntegrationTest {
       "退货"
     );
     assertThatThrownBy(() ->
-      commerce.confirmRefund(customer, draft.get("id").toString(), false)
+      commerce.confirmRefund(customer, draft.get("id").toString(), false, 0)
     ).hasMessageContaining("400");
     assertThatThrownBy(() ->
       commerce.reviewRefund(
@@ -576,7 +682,8 @@ class SmartServeIntegrationTest {
     var pending = commerce.confirmRefund(
       customer,
       draft.get("id").toString(),
-      true
+      true,
+      0
     );
     commerce.reviewRefund(
       ADMIN,
@@ -607,7 +714,8 @@ class SmartServeIntegrationTest {
     var pending = commerce.confirmRefund(
       actor,
       draft.get("id").toString(),
-      true
+      true,
+      0
     );
     commerce.reviewRefund(
       ADMIN,
@@ -902,7 +1010,7 @@ class SmartServeIntegrationTest {
     ).hasMessageContaining("403");
     var draft = commerce.createRefund(customer, id, "客户本人申请");
     assertThatThrownBy(() ->
-      commerce.confirmRefund(ADMIN, draft.get("id").toString(), true)
+      commerce.confirmRefund(ADMIN, draft.get("id").toString(), true, 0)
     ).hasMessageContaining("403");
     assertThat(
       commerce.refund(customer, draft.get("id").toString()).get("status")
@@ -910,7 +1018,7 @@ class SmartServeIntegrationTest {
     assertThat(balance()).isEqualByComparingTo("9941");
     assertThat(
       commerce
-        .confirmRefund(customer, draft.get("id").toString(), true)
+        .confirmRefund(customer, draft.get("id").toString(), true, 0)
         .get("status")
     ).isEqualTo("PENDING_REVIEW");
   }

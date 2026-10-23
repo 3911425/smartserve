@@ -67,11 +67,11 @@ await check("customer cannot advance shipping", async () => {
   );
 });
 await check("admin ships then delivers with persisted version", async () => {
-  order = await admin.api("/admin/orders/" + order.id + "/advance", "POST", {
+  if (order.status === "PAID") order = await admin.api("/admin/orders/" + order.id + "/advance", "POST", {
     status: "SHIPPED",
     version: order.version,
   });
-  order = await admin.api("/admin/orders/" + order.id + "/advance", "POST", {
+  if (order.status === "SHIPPED") order = await admin.api("/admin/orders/" + order.id + "/advance", "POST", {
     status: "DELIVERED",
     version: order.version,
   });
@@ -95,6 +95,7 @@ await check("refund requires user confirmation and admin review", async () => {
   );
   refund = await client.api("/refunds/" + refund.id + "/confirm", "POST", {
     confirmed: true,
+    version: refund.version,
   });
   assert.equal(refund.status, "PENDING_REVIEW");
   assert.equal(Number((await client.api("/wallet")).balance), 9941);

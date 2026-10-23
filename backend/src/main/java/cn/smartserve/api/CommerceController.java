@@ -42,6 +42,12 @@ public class CommerceController {
   ) {}
 
   public record Reset(@NotBlank @Size(min = 8, max = 72) String password) {}
+  public record Version(@NotNull @Min(0) Integer version) {}
+
+  @PostMapping("/refunds/{id}/withdraw")
+  Object withdraw(@PathVariable String id, @Valid @RequestBody Version in, HttpServletRequest req) {
+    return commerce.withdrawRefund(Access.actor(req), id, in.version());
+  }
 
   @GetMapping("/wallet")
   Object wallet(HttpServletRequest req) {

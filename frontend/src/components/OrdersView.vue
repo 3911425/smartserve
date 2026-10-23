@@ -8,21 +8,30 @@ import OrderDetail from "./OrderDetail.vue";
 const props = defineProps<{ refreshKey: number }>();
 const emit = defineEmits(["ask", "changed", "store"]);
 const orders = ref<Entity[]>([]),
+  summary = ref<Entity>({}),
+  total = ref(0),
+  hasNext = ref(false),
   status = ref(""),
   selected = ref<Entity | null>(null),
   loading = ref(false),
   page = ref(1);
+let loadVersion = 0;
 async function load() {
+  const requestVersion = ++loadVersion;
   loading.value = true;
   try {
     const result = await api(
       `/orders/page?status=${status.value}&page=${page.value}`,
     );
+    if (requestVersion !== loadVersion) return;
     orders.value = result.items;
+    summary.value = result.summary || {};
+    total.value = result.total;
+    hasNext.value = result.hasNext;
   } catch (e) {
     ElMessage.error((e as Error).message);
   } finally {
-    loading.value = false;
+    if (requestVersion === loadVersion) loading.value = false;
   }
 }
 onMounted(load);
@@ -56,6 +65,11 @@ function updated(order: Entity) {
         <RefreshCw :size="15" />刷新订单
       </button>
     </div>
+    <div class="order-overview">
+      <button v-for="item in [{ status: 'PAID', label: '等待发货', hint: '发货前可取消' }, { status: 'SHIPPED', label: '正在路上', hint: '配送进度随时查' }, { status: 'DELIVERED', label: '已经送达', hint: '签收后可核验售后' }, { status: 'REFUND_PENDING', label: '售后处理中', hint: '客户确认 · 专员审核' }]" :key="item.status" :class="{ active: status === item.status }" @click="status = item.status">
+        <span>{{ item.label }}</span><strong>{{ summary[item.status] || 0 }}<small>笔</small></strong><small>{{ item.hint }}</small>
+      </button>
+    </div>
     <div class="category-tabs order-tabs">
       <button
         v-for="s in [
@@ -78,7 +92,7 @@ function updated(order: Entity) {
     <div v-else-if="!orders.length" class="empty empty-card">
       <Package :size="40" />
       <h3>这里还没有订单</h3>
-      <p>选一件适合自己的好物，或让智服先帮你了解。</p>
+      <p>{{ status ? '当前筛选下没有订单，可以切换到全部订单。' : '选一件适合自己的好物，或让智服先帮你了解。' }}</p>
       <button class="primary" @click="emit('store')">
         去看看好物<ArrowRight :size="16" />
       </button>
@@ -110,6 +124,7 @@ function updated(order: Entity) {
             查看详情<ArrowRight :size="15" />
           </button>
         </div>
+        <p class="order-service-hint">{{ order.serviceOptions?.message }}</p>
       </article>
     </div>
     <div class="pagination">
@@ -122,10 +137,10 @@ function updated(order: Entity) {
         "
       >
         上一页</button
-      ><span>第 {{ page }} 页</span
+      ><span>共 {{ total }} 笔 · 第 {{ page }} 页</span
       ><button
         class="secondary"
-        :disabled="orders.length < 20"
+        :disabled="!hasNext"
         @click="
           page++;
           load();

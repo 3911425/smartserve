@@ -1,5 +1,6 @@
 import type { Entity } from "./format";
 export type { Entity } from "./format";
+export const BUSINESS_RULES_VERSION = "2.1-20261023";
 let csrf = "";
 export function setCsrf(value: string) {
   csrf = value;

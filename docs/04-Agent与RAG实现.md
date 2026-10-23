@@ -16,9 +16,9 @@
 | ----------- | -------------------------------------------------------------------------------------- |
 | PRODUCT     | searchKnowledge、getProducts                                                           |
 | ORDER       | queryOrderStatus、listMyOrders                                                         |
-| AFTER_SALES | searchKnowledge、queryOrderStatus、listMyOrders、checkRefundEligibility、prepareRefund |
+| AFTER_SALES | searchKnowledge、queryOrderStatus、listMyOrders、checkRefundEligibility、prepareRefund、prepareCancellation |
 
-`prepareRefund` 只形成建议。工具目录没有购买、改物流、扣款、退款确认或管理员批准。模型不能传 `userId` 选择其他身份；额外参数会拒绝，当前客户由服务器执行上下文传入，业务层再次校验归属。订单工具不返回电话、地址、收件人。管理员在咨询页也不能借工具自由冒充客户。
+`prepareRefund` 和 `prepareCancellation` 只形成建议。待发货取消建议引导客户核对订单并确认取消；已送达退货建议引导客户按窗口申请、确认和等待审核。工具目录没有购买、取消执行、改物流、扣款、退款确认或管理员批准。模型不能传 `userId` 选择其他身份；额外参数会拒绝，当前客户由服务器执行上下文传入，业务层再次校验归属。订单工具不返回电话、地址、收件人。管理员在咨询页也不能借工具自由冒充客户。
 
 MCP客户端真实执行 initialize、initialized通知、tools/list、tools/call，经 `/api/mcp` 的HTTP JSON-RPC到工具注册表。内部服务token与可信身份头用于受信后端，不是公开OAuth授权服务；Nginx不对外代理MCP。它是本项目使用的最小协议子集，没有宣称完整多租户MCP平台。
 

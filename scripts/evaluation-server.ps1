@@ -1,4 +1,4 @@
-param([switch]$Online,[switch]$Trace,[switch]$Stop)
+param([switch]$Online,[switch]$Trace,[switch]$Stop,[switch]$Fresh)
 $ErrorActionPreference='Stop'
 $taskRoot=Split-Path -Parent $PSScriptRoot
 $taskFolder=Join-Path $taskRoot '.local\evaluation'
@@ -20,7 +20,8 @@ $taskJar=Join-Path $taskRoot 'backend\target\smartserve-backend-2.0.0.jar'
 if(!(Test-Path -LiteralPath $taskJar)){throw 'Build the V2 backend JAR first.'}
 $taskLlm=if($Online){'true'}else{'false'}
 $taskTracing=if($Trace){'true'}else{'false'}
-$taskJdbc='jdbc:h2:file:'+($taskFolder.Replace('\','/'))+'/database;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE'
+$taskDatabaseName=if($Fresh){'database-'+[DateTime]::UtcNow.ToString('yyyyMMddHHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,6)}else{'database'}
+$taskJdbc='jdbc:h2:file:'+($taskFolder.Replace('\','/'))+'/'+$taskDatabaseName+';MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE'
 $taskArgs=@('-jar',('"'+$taskJar+'"'),'--server.port=18082','--spring.profiles.active=demo',('--spring.datasource.url='+$taskJdbc),'--spring.datasource.username=sa','--spring.datasource.password=','--smartserve.async-mode=local','--smartserve.pgvector-enabled=false',('--smartserve.llm-enabled='+$taskLlm),('--smartserve.tracing-enabled='+$taskTracing),'--WORKER_ENABLED=true')
 $taskProcess=Start-Process -FilePath 'java.exe' -ArgumentList $taskArgs -WorkingDirectory (Join-Path $taskRoot 'backend') -WindowStyle Hidden -RedirectStandardOutput (Join-Path $taskFolder 'out.log') -RedirectStandardError (Join-Path $taskFolder 'err.log') -PassThru
 $taskProcess.Id | Set-Content -LiteralPath $taskPidFile

@@ -1,0 +1,53 @@
+{
+  "measuredAt": "2026-10-23T09:35:28.203Z",
+  "checks": [
+    {
+      "name": "initial simulated grant",
+      "passed": true
+    },
+    {
+      "name": "profile and default address",
+      "passed": true
+    },
+    {
+      "name": "16 identical HTTP checkouts have one order and one debit",
+      "passed": true
+    },
+    {
+      "name": "cross-user order rejected",
+      "passed": true
+    },
+    {
+      "name": "customer cannot advance shipping",
+      "passed": true
+    },
+    {
+      "name": "admin ships then delivers with persisted version",
+      "passed": true
+    },
+    {
+      "name": "refund requires user confirmation and admin review",
+      "passed": true
+    },
+    {
+      "name": "concurrent repeated admin review refunds exactly once",
+      "passed": true
+    },
+    {
+      "name": "confirmed ticket reaches admin and resolution returns to conversation",
+      "passed": true
+    },
+    {
+      "name": "admin can view orders by customer",
+      "passed": true
+    },
+    {
+      "name": "logout revokes cookie immediately",
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "本报告使用隔离测试客户和模拟余额，没有真实支付或真实物流",
+    "并发样本是有限回归测试，不是容量压测"
+  ]
+}

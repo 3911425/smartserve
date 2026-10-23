@@ -25,7 +25,8 @@ public class ToolRegistry {
       "queryOrderStatus",
       "listMyOrders",
       "checkRefundEligibility",
-      "prepareRefund"
+      "prepareRefund",
+      "prepareCancellation"
     )
   );
 
@@ -41,7 +42,7 @@ public class ToolRegistry {
   private List<String> parameters(String name) {
     return switch (name) {
       case "searchKnowledge" -> List.of("query");
-      case "queryOrderStatus", "checkRefundEligibility" -> List.of("orderId");
+      case "queryOrderStatus", "checkRefundEligibility", "prepareCancellation" -> List.of("orderId");
       case "prepareRefund" -> List.of("orderId", "reason");
       default -> List.of();
     };
@@ -55,6 +56,7 @@ public class ToolRegistry {
       case "queryOrderStatus" -> "核验订单归属后读取订单事实和模拟物流，不返回收货地址或联系方式。";
       case "checkRefundEligibility" -> "由业务规则检查订单的七日窗口、状态和资金来源，模型不能修改结论。";
       case "prepareRefund" -> "准备只读的售后建议卡，不创建申请、不扣款、不退款。用户必须通过界面确认才能提交申请。";
+      case "prepareCancellation" -> "为尚未发货的订单准备只读取消建议。不会取消或退款，须客户在订单页明确确认后执行。";
       default -> throw new IllegalArgumentException("未知工具");
     };
   }
@@ -160,6 +162,7 @@ public class ToolRegistry {
         orderId(args),
         required(args, "reason", 500)
       );
+      case "prepareCancellation" -> commerce.prepareCancellation(customer, orderId(args));
       default -> throw new IllegalArgumentException("未知工具");
     };
   }

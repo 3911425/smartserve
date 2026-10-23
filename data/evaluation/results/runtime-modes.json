@@ -1,0 +1,55 @@
+{
+  "rows": [
+    {
+      "mode": "docker",
+      "measuredAt": "2026-10-23T09:50:23.117Z",
+      "passed": true,
+      "businessRulesVersion": "2.1-20261023",
+      "vectorStore": "PostgreSQL / pgvector",
+      "modelEnabled": true,
+      "modelProvider": "tokendance",
+      "hostJarSha256": null,
+      "checks": [
+        "ADMIN: login, session and permissions",
+        "CUSTOMER: login, session and permissions"
+      ],
+      "limitations": [
+        "Read-only business checks plus login/logout; does not claim production load or full model quality validation."
+      ]
+    },
+    {
+      "mode": "native",
+      "measuredAt": "2026-10-23T09:53:13.363Z",
+      "passed": true,
+      "businessRulesVersion": "2.1-20261023",
+      "vectorStore": "PostgreSQL / JVM余弦（本机配置）",
+      "modelEnabled": true,
+      "modelProvider": "tokendance",
+      "hostJarSha256": "8d8e98c1abea16d0ca73972f220cf521eee8a5c08332bc04595f8eea844d0694",
+      "checks": [
+        "ADMIN: login, session and permissions",
+        "CUSTOMER: login, session and permissions"
+      ],
+      "limitations": [
+        "Read-only business checks plus login/logout; does not claim production load or full model quality validation."
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "measuredAt": "2026-10-23T09:55:20.340Z",
+      "passed": true,
+      "businessRulesVersion": "2.1-20261023",
+      "vectorStore": "PostgreSQL / pgvector",
+      "modelEnabled": true,
+      "modelProvider": "tokendance",
+      "hostJarSha256": "8d8e98c1abea16d0ca73972f220cf521eee8a5c08332bc04595f8eea844d0694",
+      "checks": [
+        "ADMIN: login, session and permissions",
+        "CUSTOMER: login, session and permissions"
+      ],
+      "limitations": [
+        "Read-only business checks plus login/logout; does not claim production load or full model quality validation."
+      ]
+    }
+  ]
+}

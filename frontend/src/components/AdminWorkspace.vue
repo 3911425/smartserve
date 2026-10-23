@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   ArrowLeft,
@@ -30,6 +30,7 @@ const tab = ref("work"),
   busy = ref(false);
 const ticketForm = reactive({ resolution: "", note: "" });
 const review = reactive({ approve: true, returnedToStock: false, note: "" });
+watch(() => review.approve, (approve) => { if (!approve) review.returnedToStock = false; });
 async function load() {
   try {
     [tickets.value, refunds.value, feedback.value] = await Promise.all([
@@ -50,9 +51,11 @@ async function loadCustomers() {
 }
 async function customerOrders(customer: Entity) {
   selectedUser.value = customer;
+  orders.value = [];
   const result = await api(
     `/admin/orders?userId=${encodeURIComponent(customer.id)}&page=${orderPage.value}`,
   );
+  if (selectedUser.value?.id !== customer.id) return;
   orders.value = result.items;
 }
 async function viewOrder(id: string) {

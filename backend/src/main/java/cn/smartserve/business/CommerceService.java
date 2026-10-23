@@ -18,9 +18,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class CommerceService {
 
   private final JsonStore db;
+  private final FulfillmentSimulator fulfillment;
 
-  public CommerceService(JsonStore db) {
+  public CommerceService(JsonStore db, FulfillmentSimulator fulfillment) {
     this.db = db;
+    this.fulfillment = fulfillment;
   }
 
   public record Purchase(
@@ -260,6 +262,19 @@ public class CommerceService {
     );
     ledger(actor.userId(), id, "PAYMENT", amount.negate(), "payment:" + id);
     event(id, "PAID", "模拟余额支付成功，等待发货", actor.userId());
+    String simulatedStatus = fulfillment.initialStatus();
+    if (!Set.of("PAID", "SHIPPED", "DELIVERED").contains(simulatedStatus)) throw new IllegalStateException("Invalid simulated fulfillment status");
+    if (!simulatedStatus.equals("PAID")) {
+      db.jdbc.update(
+        "UPDATE shop_order SET status='SHIPPED',tracking_number=?,shipped_at=CURRENT_TIMESTAMP WHERE id=?",
+        "DEMO" + id.substring(2), id
+      );
+      event(id, "SHIPPED", "模拟场景：承运商已揽收，运输中", "simulation");
+    }
+    if (simulatedStatus.equals("DELIVERED")) {
+      db.jdbc.update("UPDATE shop_order SET status='DELIVERED',delivered_at=CURRENT_TIMESTAMP WHERE id=?", id);
+      event(id, "DELIVERED", "模拟场景：已签收，可体验签收后的售后流程", "simulation");
+    }
     return order(actor, id);
   }
 
@@ -317,6 +332,7 @@ public class CommerceService {
     String status,
     int page
   ) {
+    if (page < 1 || page > 10000 || (!status.isBlank() && !Set.of("PAID", "SHIPPED", "DELIVERED", "REFUND_PENDING", "REFUNDED", "CANCELLED").contains(status))) throw error(HttpStatus.BAD_REQUEST, "订单筛选状态或页码不合法");
     if (!actor.admin()) {
       if (!user.isBlank()) Access.own(actor, user);
       user = actor.userId();
@@ -327,6 +343,9 @@ public class CommerceService {
       sql += " AND user_id=?";
       args.add(user);
     }
+    var counts = new LinkedHashMap<String, Object>();
+    for (var count : db.jdbc.queryForList("SELECT status,COUNT(*) AS total FROM shop_order" + (user.isBlank() ? "" : " WHERE user_id=?") + " GROUP BY status", user.isBlank() ? new Object[] {} : new Object[] {user})) counts.put(count.get("status").toString(), count.get("total"));
+    int total = status.isBlank() ? counts.values().stream().mapToInt(n -> ((Number) n).intValue()).sum() : ((Number) counts.getOrDefault(status, 0)).intValue();
     if (!status.isBlank()) {
       sql += " AND status=?";
       args.add(status);
@@ -343,7 +362,10 @@ public class CommerceService {
       "page",
       Math.max(1, page),
       "pageSize",
-      20
+      20,
+      "total", total,
+      "hasNext", page * 20 < total,
+      "summary", counts
     );
   }
 
@@ -367,6 +389,7 @@ public class CommerceService {
     result.put("address", r.get("address"));
     result.put("trackingNumber", r.get("tracking_number"));
     result.put("createdAt", r.get("created_at").toString());
+    result.put("shippedAt", r.get("shipped_at") == null ? "" : r.get("shipped_at").toString());
     result.put(
       "deliveredAt",
       r.get("delivered_at") == null
@@ -389,19 +412,12 @@ public class CommerceService {
       id
     );
     result.put("events", events);
-    result.put(
-      "logistics",
-      events.isEmpty()
-        ? "暂无物流事件"
-        : events.get(events.size() - 1).get("description")
-    );
-    result.put(
-      "refunds",
-      db.jdbc.queryForList(
-        "SELECT id,status,amount,reason,review_note FROM refund_request WHERE order_id=?",
-        id
-      )
-    );
+    var logistics = events.stream().filter(e -> Set.of("PAID", "SHIPPED", "DELIVERED").contains(e.get("status"))).toList();
+    result.put("logistics", logistics.isEmpty() ? "暂无物流事件" : logistics.get(logistics.size() - 1).get("description"));
+    var refunds = db.jdbc.queryForList("SELECT id,status,amount,reason,review_note,version FROM refund_request WHERE order_id=?", id);
+    for (var refund : refunds) refund.put("history", db.jdbc.queryForList("SELECT version,status,reason,review_note,created_at FROM refund_history WHERE refund_id=? ORDER BY version", refund.get("id")));
+    result.put("refunds", refunds);
+    result.put("serviceOptions", OrderServicePolicy.evaluate(r.get("status").toString(), (Timestamp) r.get("delivered_at"), refunds.isEmpty() ? "" : refunds.get(0).get("status").toString()));
     return result;
   }
 
@@ -480,7 +496,7 @@ public class CommerceService {
       "UPDATE shop_order SET status='CANCELLED',version=version+1 WHERE id=?",
       id
     );
-    event(id, "CANCELLED", "订单已取消；钱包支付已原路退回", actor.userId());
+    event(id, "CANCELLED", r.get("funding_source").equals("WALLET") ? "订单已取消；模拟余额已原路退回，库存已恢复" : "历史演示订单已取消；不向钱包入账", actor.userId());
     return order(actor, id);
   }
 
@@ -498,22 +514,13 @@ public class CommerceService {
 
   public Map<String, Object> refundEligibility(Actor actor, String id) {
     var o = order(actor, id);
-    String date = o.get("deliveredAt").toString();
-    long days = date.isBlank()
-      ? 999
-      : ChronoUnit.DAYS.between(
-          LocalDate.parse(date),
-          LocalDate.now(ZoneId.of("Asia/Shanghai"))
-        );
-    boolean eligible =
-      o.get("status").equals("DELIVERED") && days >= 0 && days <= 7;
-    return Map.of(
+    var options = (Map<String, Object>) o.get("serviceOptions");
+    var result = new LinkedHashMap<String, Object>(options);
+    result.putAll(Map.of(
       "orderId",
       id,
       "eligible",
-      eligible,
-      "daysSinceDelivery",
-      days,
+      Boolean.TRUE.equals(options.get("canApplyRefund")) || Boolean.TRUE.equals(options.get("canConfirmRefund")),
       "amount",
       o.get("amount"),
       "fundingSource",
@@ -524,7 +531,14 @@ public class CommerceService {
       "已送达且签收后7日内可申请；客户确认后等待管理员审核。历史演示订单不向钱包入账。",
       "paymentMode",
       "SIMULATED"
-    );
+    ));
+    result.put("orderStatus", o.get("status"));
+    return result;
+  }
+
+  public Map<String, Object> prepareCancellation(Actor actor, String id) {
+    var order = toolOrder(actor, id);
+    return Map.of("orderId", id, "eligible", ((Map<?, ?>) order.get("serviceOptions")).get("canCancel"), "amount", order.get("amount"), "fundingSource", order.get("fundingSource"), "proposalOnly", true);
   }
 
   public Map<String, Object> prepareRefund(
@@ -545,6 +559,7 @@ public class CommerceService {
     String reason
   ) {
     requireCustomerCommand(actor);
+    if (reason == null || reason.isBlank() || reason.length() > 500) throw error(HttpStatus.BAD_REQUEST, "售后原因需为1至500个字符");
     var old = row(id, false);
     Access.own(actor, old.get("user_id").toString());
     lockCustomer(old.get("user_id").toString());
@@ -553,10 +568,15 @@ public class CommerceService {
       "SELECT id FROM refund_request WHERE order_id=?",
       id
     );
-    if (!existing.isEmpty()) return refund(
-      actor,
-      existing.get(0).get("id").toString()
-    );
+    if (!existing.isEmpty()) {
+      var previous = refund(actor, existing.get(0).get("id").toString());
+      if (!Set.of("REJECTED", "WITHDRAWN").contains(previous.get("status"))) return previous;
+      if (!Boolean.TRUE.equals(refundEligibility(actor, id).get("canApplyRefund"))) throw error(HttpStatus.CONFLICT, "当前订单不能重新申请退货，请查看售后规则");
+      db.jdbc.update("UPDATE refund_request SET status='AWAITING_CONFIRMATION',reason=?,confirmed_at=NULL,reviewed_at=NULL,reviewer_id=NULL,review_note='',version=version+1 WHERE id=?", reason, previous.get("id"));
+      refundHistory(previous.get("id").toString(), actor.userId());
+      event(id, "REFUND_DRAFT", "客户重新准备售后申请，尚待确认", actor.userId());
+      return refund(actor, previous.get("id").toString());
+    }
     if (
       !Boolean.TRUE.equals(refundEligibility(actor, id).get("eligible"))
     ) throw error(HttpStatus.CONFLICT, "不满足自动退货条件，可提交人工服务单");
@@ -572,6 +592,8 @@ public class CommerceService {
       o.get("amount"),
       reason
     );
+    event(id, "REFUND_DRAFT", "售后申请已准备，等待客户确认，尚未退款", actor.userId());
+    refundHistory(refund, actor.userId());
     return refund(actor, refund);
   }
 
@@ -593,6 +615,7 @@ public class CommerceService {
     out.put("reviewNote", r.get("review_note"));
     out.put("version", r.get("version"));
     out.put("paymentMode", "SIMULATED");
+    out.put("history", db.jdbc.queryForList("SELECT version,status,reason,review_note,created_at FROM refund_history WHERE refund_id=? ORDER BY version", id));
     out.put(
       "fundingSource",
       row(r.get("order_id").toString(), false).get("funding_source")
@@ -604,7 +627,8 @@ public class CommerceService {
   public Map<String, Object> confirmRefund(
     Actor actor,
     String id,
-    boolean confirmed
+    boolean confirmed,
+    int expectedVersion
   ) {
     requireCustomerCommand(actor);
     if (!confirmed) throw error(HttpStatus.BAD_REQUEST, "请明确确认申请信息");
@@ -613,7 +637,9 @@ public class CommerceService {
     lockCustomer(first.get("userId").toString());
     var o = row(order, true);
     var r = refund(actor, id);
-    if (!r.get("status").equals("AWAITING_CONFIRMATION")) return r;
+    if (Set.of("PENDING_REVIEW", "REFUNDED").contains(r.get("status"))) return r;
+    if (!r.get("status").equals("AWAITING_CONFIRMATION")) throw error(HttpStatus.CONFLICT, "申请已撤回或未通过，请重新准备后再确认");
+    if (((Number) r.get("version")).intValue() != expectedVersion) throw error(HttpStatus.CONFLICT, "申请内容已更新，请重新核对后确认");
     if (
       !Boolean.TRUE.equals(refundEligibility(actor, order).get("eligible"))
     ) throw error(HttpStatus.CONFLICT, "订单状态已变化，请重新核验");
@@ -625,12 +651,31 @@ public class CommerceService {
       "UPDATE shop_order SET refund_previous_status=status,status='REFUND_PENDING',version=version+1 WHERE id=?",
       order
     );
+    refundHistory(id, actor.userId());
     event(
       order,
       "REFUND_PENDING",
       "客户已确认申请，等待管理员审核",
       actor.userId()
     );
+    return refund(actor, id);
+  }
+
+  @Transactional
+  public Map<String, Object> withdrawRefund(Actor actor, String id, int expectedVersion) {
+    requireCustomerCommand(actor);
+    var first = refund(actor, id);
+    lockCustomer(first.get("userId").toString());
+    String orderId = first.get("orderId").toString();
+    row(orderId, true);
+    var current = refund(actor, id);
+    if (current.get("status").equals("WITHDRAWN")) return current;
+    if (((Number) current.get("version")).intValue() != expectedVersion) throw error(HttpStatus.CONFLICT, "申请已更新，请刷新后撤回");
+    if (!Set.of("AWAITING_CONFIRMATION", "PENDING_REVIEW").contains(current.get("status"))) throw error(HttpStatus.CONFLICT, "仅待确认或待审核的申请可以撤回");
+    if (current.get("status").equals("PENDING_REVIEW")) db.jdbc.update("UPDATE shop_order SET status=COALESCE(refund_previous_status,'DELIVERED'),refund_previous_status=NULL,version=version+1 WHERE id=?", orderId);
+    db.jdbc.update("UPDATE refund_request SET status='WITHDRAWN',version=version+1 WHERE id=?", id);
+    refundHistory(id, actor.userId());
+    event(orderId, "REFUND_WITHDRAWN", "客户撤回售后申请；未发生退款", actor.userId());
     return refund(actor, id);
   }
 
@@ -650,12 +695,16 @@ public class CommerceService {
     lockCustomer(owner);
     var o = row(order, true);
     var r = refund(admin, id);
-    if (Set.of("REFUNDED", "REJECTED").contains(r.get("status"))) return r;
+    if (Set.of("REFUNDED", "REJECTED").contains(r.get("status"))) {
+      if (!r.get("status").equals(approve ? "REFUNDED" : "REJECTED")) throw error(HttpStatus.CONFLICT, "已完成的审核不能改为相反结论");
+      return r;
+    }
     if (
-      !r.get("status").equals("PENDING_REVIEW") ||
+      !r.get("status").equals("PENDING_REVIEW") || !o.get("status").equals("REFUND_PENDING") ||
       ((Number) r.get("version")).intValue() != version
     ) throw error(HttpStatus.CONFLICT, "申请不在待审核状态或已被更新");
     if (note.isBlank()) throw error(HttpStatus.BAD_REQUEST, "请填写审核说明");
+    if (!approve && returnedToStock) throw error(HttpStatus.BAD_REQUEST, "驳回申请不能同时确认退回入库");
     if (approve) {
       if (o.get("funding_source").equals("WALLET")) {
         db.jdbc.update(
@@ -677,7 +726,7 @@ public class CommerceService {
         order
       );
     } else db.jdbc.update(
-      "UPDATE shop_order SET status=COALESCE(refund_previous_status,'DELIVERED'),version=version+1 WHERE id=?",
+      "UPDATE shop_order SET status=COALESCE(refund_previous_status,'DELIVERED'),refund_previous_status=NULL,version=version+1 WHERE id=?",
       order
     );
     db.jdbc.update(
@@ -687,6 +736,7 @@ public class CommerceService {
       note,
       id
     );
+    refundHistory(id, admin.userId());
     event(
       order,
       approve ? "REFUNDED" : "REFUND_REJECTED",
@@ -721,5 +771,9 @@ public class CommerceService {
       HttpStatus.FORBIDDEN,
       "此操作须由客户本人确认，管理员仅负责核验与审核"
     );
+  }
+
+  private void refundHistory(String id, String actor) {
+    db.jdbc.update("INSERT INTO refund_history(refund_id,version,status,reason,review_note,actor_id) SELECT id,version,status,reason,review_note,? FROM refund_request WHERE id=?", actor, id);
   }
 }

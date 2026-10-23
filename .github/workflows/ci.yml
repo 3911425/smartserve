@@ -87,6 +87,9 @@ jobs:
     env:
       SMARTSERVE_STANDARD_TEST: "true"
       DB_URL: jdbc:postgresql://localhost:5432/smartserve
+      SMARTSERVE_PARITY_TEST: "true"
+      SMARTSERVE_PARITY_DB_URL: jdbc:postgresql://localhost:5432/smartserve_verify_ci
+      SMARTSERVE_PARITY_PGVECTOR: "true"
       DB_USER: smartserve
       DB_PASSWORD: ci-local-password
       REDIS_PASSWORD: ""
@@ -99,5 +102,5 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - run: mvn -B -ntp -Dtest=StandardStackIntegrationTest test
+      - run: mvn -B -ntp -Dtest=StandardStackIntegrationTest,DatabaseParityIntegrationTest test
         working-directory: backend

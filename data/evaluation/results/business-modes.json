@@ -1,0 +1,37 @@
+{
+    "measuredAt":  "2026-10-23T09:53:04.4322058Z",
+    "scope":  "Identical commerce/permission/Agent tests on isolated native PG and Docker PG, plus separate Redis/RabbitMQ verification",
+    "results":  [
+                    {
+                        "mode":  "native",
+                        "tests":  43,
+                        "failures":  0,
+                        "errors":  0,
+                        "skipped":  0,
+                        "database":  "jdbc:postgresql://127.0.0.1:5432/smartserve_verify_native_20261023094843_5ff1b4dd",
+                        "log":  ".local/verification/native.log"
+                    },
+                    {
+                        "mode":  "docker",
+                        "tests":  43,
+                        "failures":  0,
+                        "errors":  0,
+                        "skipped":  0,
+                        "database":  "jdbc:postgresql://127.0.0.1:15432/smartserve_verify_docker_20261023094843_5ff1b4dd",
+                        "log":  ".local/verification/docker.log"
+                    },
+                    {
+                        "mode":  "docker-infrastructure",
+                        "tests":  2,
+                        "failures":  0,
+                        "errors":  0,
+                        "skipped":  0,
+                        "database":  "jdbc:postgresql://127.0.0.1:15432/smartserve_verify_docker_20261023094843_5ff1b4dd",
+                        "log":  ".local/verification/docker-infrastructure.log"
+                    }
+                ],
+    "notes":  [
+                  "Verification databases use smartserve_verify_* names and are retained for inspection. Business databases and user orders are not reset.",
+                  "No paid model calls; this is correctness regression, not load or production acceptance testing."
+              ]
+}

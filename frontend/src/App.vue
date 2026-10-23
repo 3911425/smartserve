@@ -13,7 +13,7 @@ import {
   UserRound,
   Wallet,
 } from "lucide-vue-next";
-import { api, ApiError, setCsrf } from "./api";
+import { api, ApiError, setCsrf, BUSINESS_RULES_VERSION } from "./api";
 import { date, labels, money, type Entity } from "./format";
 import AuthView from "./components/AuthView.vue";
 import ProfileDialog from "./components/ProfileDialog.vue";
@@ -25,6 +25,7 @@ import OpsView from "./components/OpsView.vue";
 const user = ref<Entity | null>(null),
   booting = ref(true),
   connectionError = ref(""),
+  incompatible = ref(false),
   tab = ref("store"),
   refreshKey = ref(0),
   requestText = ref(""),
@@ -49,8 +50,13 @@ const tabs = computed(() =>
 async function initialize() {
   booting.value = true;
   connectionError.value = "";
+  incompatible.value = false;
   try {
-    await api("/status");
+    const status = await api("/status");
+    if (status.businessRulesVersion !== BUSINESS_RULES_VERSION) {
+      incompatible.value = true;
+      throw new Error("前后端业务版本不一致，请更新并重启整套应用，再刷新页面。Docker 方式需要重新构建应用镜像。");
+    }
     try {
       const result = await api("/auth/me");
       setCsrf(result.csrfToken);
@@ -68,6 +74,7 @@ async function authenticated(value: Entity) {
   user.value = value;
   tab.value = value.role === "ADMIN" ? "admin" : "store";
   await refreshWallet();
+  window.scrollTo({ top: 0 });
 }
 async function refreshWallet() {
   if (user.value?.role === "CUSTOMER") wallet.value = await api("/wallet");
@@ -121,7 +128,7 @@ onUnmounted(() =>
       服务连接暂时不可用：{{ connectionError }}
       <button @click="initialize">重新连接</button>
     </div>
-    <AuthView @authenticated="authenticated"
+    <AuthView v-if="!incompatible" @authenticated="authenticated"
   /></template>
   <div v-else class="application" :key="user.id">
     <header class="header">

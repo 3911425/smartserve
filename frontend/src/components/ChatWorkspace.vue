@@ -100,10 +100,13 @@ async function select(id: string) {
   if (sending.value) return;
   conversation.value = id;
   sessionStorage.setItem(storageKey(), id);
-  messages.value = await api<Entity[]>(`/conversations/${id}/messages`);
+  const loadedMessages = await api<Entity[]>(`/conversations/${id}/messages`);
+  if (conversation.value !== id) return;
+  messages.value = loadedMessages;
   progress.value = [];
   await scroll();
   const runs = await api<Entity[]>("/runs");
+  if (conversation.value !== id) return;
   const unfinished = runs.find(
     (r) => r.conversationId === id && ["RUNNING", "QUEUED"].includes(r.status),
   );
@@ -444,6 +447,13 @@ onUnmounted(() => {
                 >
                   核对订单与申请
                 </button>
+              </div>
+              <div v-if="m.cancellationProposal" class="assistant-card">
+                <span class="eyebrow">取消建议 · 尚未执行</span>
+                <h4>待发货订单可由本人确认取消</h4>
+                <p>{{ m.cancellationProposal.orderId }} · ¥{{ money(m.cancellationProposal.amount) }}</p>
+                <p class="muted">状态以打开订单后的最新核验为准；这里只提供建议，不会直接取消或退款。</p>
+                <button class="secondary" @click="openOrder(m.cancellationProposal.orderId)">核对订单与取消</button>
               </div>
               <button
                 v-if="m.needsEscalation"

@@ -28,6 +28,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
     "smartserve.tracing-enabled=false",
     "smartserve.data-path=../data",
     "smartserve.async-mode=rabbit",
+    "smartserve.run-queue=${SMARTSERVE_TEST_QUEUE:smartserve.test.runs}",
     "smartserve.bootstrap-admin-password=StandardTest-Only-2026",
     "smartserve.bootstrap-customer-password=StandardCustomer-2026",
   }

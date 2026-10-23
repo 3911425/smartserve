@@ -25,9 +25,11 @@ async function advance() {
   }
 }
 async function cancel() {
+  if (busy.value) return;
+  busy.value = true;
   try {
     await ElMessageBox.confirm(
-      "取消未发货订单后，模拟余额与库存会一并返还。",
+      props.order.fundingSource === "LEGACY_DEMO" ? "这是历史演示订单，取消后不会增加钱包余额或库存。" : "取消未发货订单后，模拟余额与库存会一并返还。",
       "确认取消订单",
       { confirmButtonText: "确认取消", cancelButtonText: "保留订单" },
     );
@@ -41,6 +43,8 @@ async function cancel() {
   }
 }
 async function refund(existing?: Entity) {
+  if (busy.value) return;
+  busy.value = true;
   try {
     let draft = existing;
     if (!draft) {
@@ -68,7 +72,7 @@ async function refund(existing?: Entity) {
       { confirmButtonText: "确认提交", cancelButtonText: "暂不提交" },
     );
     busy.value = true;
-    await api(`/refunds/${draft!.id}/confirm`, "POST", { confirmed: true });
+    await api(`/refunds/${draft!.id}/confirm`, "POST", { confirmed: true, version: draft!.version });
     emit("updated", await api(`/orders/${props.order.id}`));
     ElMessage.success("已提交，等待管理员审核");
   } catch (e) {
@@ -82,6 +86,18 @@ async function refund(existing?: Entity) {
     busy.value = false;
   }
 }
+async function withdraw(r: Entity) {
+  if (busy.value) return;
+  busy.value = true;
+  try {
+    await ElMessageBox.confirm("撤回后不再等待本次审核，也不会发生退款；符合窗口时可重新申请。", "撤回售后申请", { confirmButtonText: "确认撤回", cancelButtonText: "保留申请" });
+    await api(`/refunds/${r.id}/withdraw`, "POST", { version: r.version });
+    emit("updated", await api(`/orders/${props.order.id}`));
+    ElMessage.success("售后申请已撤回");
+  } catch (e) {
+    if (e !== "cancel" && e !== "close") ElMessage.error((e as Error).message);
+  } finally { busy.value = false; }
+}
 </script>
 <template>
   <div class="order-detail">
@@ -90,6 +106,10 @@ async function refund(existing?: Entity) {
         labels[order.status] || order.status
       }}</span
       ><span class="muted">{{ order.id }}</span>
+    </div>
+    <div v-if="order.serviceOptions" class="service-policy" :class="order.serviceOptions.code.toLowerCase()">
+      <span class="eyebrow">这笔订单可以怎样处理</span>
+      <p>{{ order.serviceOptions.message }}</p>
     </div>
     <div v-if="order.fundingSource === 'LEGACY_DEMO'" class="notice">
       历史演示订单：不扣初始钱包余额，售后处理也不会向钱包增加余额。
@@ -147,13 +167,19 @@ async function refund(existing?: Entity) {
       <b>售后申请 · {{ labels[r.status] || r.status }}</b>
       <p>{{ r.reason }}</p>
       <p v-if="r.review_note" class="muted">审核说明：{{ r.review_note }}</p>
+      <details v-if="r.history?.length > 1" class="refund-history">
+        <summary>查看申请与审核历史 · {{ r.history.length }} 条</summary>
+        <div v-for="item in r.history" :key="item.version"><b>{{ labels[item.status] || item.status }}</b><small>{{ date(item.created_at) }}</small><p>{{ item.reason }}</p><p v-if="item.review_note" class="muted">{{ item.review_note }}</p></div>
+      </details>
       <button
-        v-if="!admin && r.status === 'AWAITING_CONFIRMATION'"
+        v-if="!admin && r.status === 'AWAITING_CONFIRMATION' && order.serviceOptions?.canConfirmRefund"
         class="secondary"
+        :disabled="busy"
         @click="refund(r)"
       >
         继续确认申请
       </button>
+      <button v-if="!admin && ['AWAITING_CONFIRMATION', 'PENDING_REVIEW'].includes(r.status)" class="text-button" :disabled="busy" @click="withdraw(r)">撤回申请</button>
     </div>
     <div class="dialog-actions">
       <button
@@ -174,20 +200,20 @@ async function refund(existing?: Entity) {
         />{{ order.status === "PAID" ? "模拟发货" : "模拟签收" }}</button
       ><template v-if="!admin"
         ><button
-          v-if="order.status === 'PAID'"
+          v-if="order.serviceOptions?.canCancel"
           class="secondary"
           :disabled="busy"
           @click="cancel"
         >
           取消订单</button
         ><button
-          v-if="order.status === 'DELIVERED' && !order.refunds?.length"
+          v-if="order.serviceOptions?.canApplyRefund"
           class="primary"
           :disabled="busy"
           @click="refund()"
         >
           申请售后
-        </button></template
+        </button><button v-if="['SHIPPED', 'DELIVERED', 'REFUNDED'].includes(order.status)" class="secondary" @click="emit('ask', `订单 ${order.id} 需要售后服务，请核验当前可办理的事项。`)">售后与异常咨询</button></template
       >
     </div>
   </div>

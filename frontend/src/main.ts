@@ -10,6 +10,7 @@ import {
 import "element-plus/dist/index.css";
 import App from "./App.vue";
 import "./style.css";
+import "./theme.css";
 const app = createApp(App);
 for (const component of [
   ElDialog,

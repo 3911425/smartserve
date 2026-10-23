@@ -1,0 +1,95 @@
+{
+  "measuredAt": "2026-10-23T09:50:32.216Z",
+  "distribution": {
+    "DELIVERED": 3,
+    "PAID": 4,
+    "SHIPPED": 5
+  },
+  "samples": [
+    {
+      "status": "DELIVERED",
+      "events": 3,
+      "stableReplay": true
+    },
+    {
+      "status": "PAID",
+      "events": 1,
+      "stableReplay": true
+    },
+    {
+      "status": "SHIPPED",
+      "events": 2,
+      "stableReplay": true
+    },
+    {
+      "status": "DELIVERED",
+      "events": 3,
+      "stableReplay": true
+    },
+    {
+      "status": "PAID",
+      "events": 1,
+      "stableReplay": true
+    },
+    {
+      "status": "PAID",
+      "events": 1,
+      "stableReplay": true
+    },
+    {
+      "status": "DELIVERED",
+      "events": 3,
+      "stableReplay": true
+    },
+    {
+      "status": "SHIPPED",
+      "events": 2,
+      "stableReplay": true
+    },
+    {
+      "status": "SHIPPED",
+      "events": 2,
+      "stableReplay": true
+    },
+    {
+      "status": "SHIPPED",
+      "events": 2,
+      "stableReplay": true
+    },
+    {
+      "status": "PAID",
+      "events": 1,
+      "stableReplay": true
+    },
+    {
+      "status": "SHIPPED",
+      "events": 2,
+      "stableReplay": true
+    }
+  ],
+  "online": {
+    "status": "COMPLETED",
+    "routes": [
+      "AFTER_SALES"
+    ],
+    "modelCalls": 5,
+    "knownTokens": 5347,
+    "validation": "引用白名单与模型证据审查通过",
+    "tools": [
+      "queryOrderStatus",
+      "prepareCancellation"
+    ],
+    "cancellationProposal": {
+      "amount": 59,
+      "orderId": "SS068276796010309",
+      "eligible": true,
+      "proposalOnly": true,
+      "fundingSource": "WALLET"
+    },
+    "answer": "**订单 SS068276796010309 取消核验结果**\n\n- 商品：轻控 P1 智能插座 ×1，金额 ¥59.00\n- 当前状态：已支付（PAID），**尚未发货**，物流为“模拟余额支付成功，等待发货”\n- 取消资格：可取消（CANCELLABLE）——尚未发货，可取消订单；钱包支付将退回模拟余额，库存同时恢复\n- 取消建议卡已准备（只读，未取消订单、未退款）\n\n请你在订单页明确确认后才会执行取消退款；在你确认前我不会提交或执行任何操作。\n\n如需继续取消，请在订单页点击确认即可。",
+    "financialWrites": false
+  },
+  "limitations": [
+    "A small isolated smoke test, not a statistical randomness test or a full online Agent quality evaluation."
+  ]
+}
