@@ -21,4 +21,7 @@ foreach ($taskEntry in @('BOOTSTRAP_ADMIN_PASSWORD','BOOTSTRAP_CUSTOMER_PASSWORD
 if ($taskEnvText -notmatch '(?m)^BOOTSTRAP_ADMIN_USER=') { $taskEnvText+='BOOTSTRAP_ADMIN_USER=admin'+[Environment]::NewLine }
 [IO.File]::WriteAllText($taskEnvPath,$taskEnvText,[Text.UTF8Encoding]::new($false))
 Write-Host 'Local account initialization is ready. Credentials are stored only in .env (BOOTSTRAP_ADMIN_PASSWORD / BOOTSTRAP_CUSTOMER_PASSWORD).'
-Write-Host 'Admin username: BOOTSTRAP_ADMIN_USER; legacy customer username: demo. Existing database passwords are never overwritten.'
+$taskAdminMatch=[regex]::Match($taskEnvText,'(?m)^BOOTSTRAP_ADMIN_USER=(.*)$')
+$taskAdminUser=$taskAdminMatch.Groups[1].Value.Trim().Trim('"')
+Write-Host "Admin username: $taskAdminUser; legacy customer username: demo."
+Write-Host 'Use the password VALUES after = in .env, not the BOOTSTRAP_* setting names. Existing database passwords are never overwritten.'

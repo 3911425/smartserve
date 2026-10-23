@@ -129,8 +129,8 @@ async function submit() {
                 :autocomplete="
                   registering ? 'new-password' : 'current-password'
                 "
-                placeholder="至少 8 个字符"
-                minlength="8"
+                :placeholder="registering ? '至少 8 个字符' : '输入账号密码'"
+                :minlength="registering ? 8 : 1"
                 maxlength="72"
                 required
               /><button

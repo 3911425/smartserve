@@ -32,8 +32,8 @@ import org.springframework.http.*;
     "smartserve.llm-enabled=false",
     "smartserve.tracing-enabled=false",
     "smartserve.async-mode=local",
-    "smartserve.bootstrap-admin-password=TestAdmin-Only-2026",
-    "smartserve.bootstrap-customer-password=TestDemo-Only-2026",
+    "smartserve.bootstrap-admin-password=seed123",
+    "smartserve.bootstrap-customer-password=seed123",
     "WORKER_ENABLED=false",
   }
 )
@@ -163,6 +163,25 @@ class SmartServeIntegrationTest {
         BigDecimal.class
       )
     ).isEqualByComparingTo("10000");
+  }
+
+  @Test
+  void configuredBootstrapPasswordsCanLoginWithoutWeakeningRegistrationPolicy() {
+    var adminSession = auth.login("admin", "seed123");
+    var demoSession = auth.login("demo", "seed123");
+    assertThat(adminSession.actor()).isEqualTo(ADMIN);
+    assertThat(demoSession.actor()).isEqualTo(new Actor("customer-001", false));
+    auth.logout(adminSession.token());
+    auth.logout(demoSession.token());
+    assertThatThrownBy(() ->
+      auth.register("short-" + UUID.randomUUID().toString().substring(0, 8), "seed123", "测试")
+    ).hasMessageContaining("密码至少8个字符");
+    assertThatThrownBy(() ->
+      auth.changePassword(customer, PASSWORD, "seed123")
+    ).hasMessageContaining("密码至少8个字符");
+    assertThatThrownBy(() ->
+      auth.resetPassword(ADMIN, customer.userId(), "seed123")
+    ).hasMessageContaining("密码至少8个字符");
   }
 
   @Test

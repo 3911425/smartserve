@@ -122,7 +122,13 @@ public class AuthService {
     String role,
     boolean enabled
   ) {
-    checkPassword(password);
+    // Registration checks its policy before insertion. Bootstrap credentials are
+    // supplied by the local operator and may predate the registration minimum.
+    if (
+      password == null ||
+      password.isBlank() ||
+      password.getBytes(StandardCharsets.UTF_8).length > 72
+    ) throw error(HttpStatus.BAD_REQUEST, "初始密码不能为空，且UTF-8编码不超过72字节");
     db.jdbc.update(
       "INSERT INTO user_account(id,username,password_hash,display_name,role,enabled) VALUES(?,?,?,?,?,?)",
       id,
