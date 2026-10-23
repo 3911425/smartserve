@@ -61,7 +61,7 @@ public class ApiController {
       "modelEnabled",
       model.enabled,
       "modelMode",
-      model.enabled ? "DeepSeek" : "离线证据演示",
+      model.enabled ? model.provider : "离线证据演示",
       "knowledge",
       knowledge.stats(),
       "paymentMode",

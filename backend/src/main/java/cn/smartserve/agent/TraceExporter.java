@@ -24,6 +24,9 @@ public class TraceExporter {
   @Value("${smartserve.langsmith-project}")
   String project;
 
+  @Value("${smartserve.model-provider}")
+  String modelProvider;
+
   private final JsonStore db;
   private final RunJournal journal;
   private final ExecutorService executor = new ThreadPoolExecutor(
@@ -138,7 +141,7 @@ public class TraceExporter {
                 "metadata",
                 Map.of(
                   "ls_provider",
-                  "deepseek",
+                  modelProvider,
                   "ls_model_name",
                   event.getOrDefault("model", "unknown"),
                   "purpose",

@@ -53,6 +53,6 @@ npm ci
 npm run build
 ```
 
-测试使用隔离数据库及测试凭证，不需要真实 DeepSeek Key。标准基础设施测试需独立 PG/Redis/RabbitMQ，并显式开启 `SMARTSERVE_STANDARD_TEST=true`，配置见验证报告。付费模型评测默认关闭。
+测试使用隔离数据库及测试凭证，不需要真实模型 Key。标准基础设施测试需独立 PG/Redis/RabbitMQ，并显式开启 `SMARTSERVE_STANDARD_TEST=true`，配置见验证报告。付费模型评测默认关闭。
 
 代码入口：`backend/src/main/java/cn/smartserve`；前端入口：`frontend/src/App.vue`；迁移：`backend/src/main/resources/db/migration`；知识资料：`data/knowledge`；评测：`data/evaluation`。GitHub 本次不推送。

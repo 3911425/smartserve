@@ -29,7 +29,7 @@ import org.springframework.test.context.DynamicPropertySource;
     "spring.datasource.password=",
     "smartserve.data-path=../data",
     "smartserve.llm-enabled=true",
-    "smartserve.deepseek-key=contract-test-only",
+    "smartserve.model-api-key=contract-test-only",
     "smartserve.tracing-enabled=false",
     "smartserve.async-mode=local",
     "smartserve.bootstrap-admin-password=TestAdmin-Only-2026",
@@ -111,7 +111,7 @@ class ModelContractIntegrationTest {
               "created",
               1,
               "model",
-              "deepseek-chat",
+              "deepseek-v4.1-flash",
               "choices",
               List.of(
                 Map.of("index", 0, "message", message, "finish_reason", finish)
@@ -138,7 +138,7 @@ class ModelContractIntegrationTest {
     });
     server.start();
     registry.add(
-      "smartserve.deepseek-url",
+      "smartserve.model-base-url",
       () -> "http://127.0.0.1:" + server.getAddress().getPort()
     );
   }

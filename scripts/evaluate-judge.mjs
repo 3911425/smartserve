@@ -6,7 +6,7 @@ if (!process.argv.includes("--paid"))
     "本脚本直接调用付费评审模型，需要 --paid；每例最多一次调用，默认3例。",
   );
 const env = await environment();
-const key = process.env.DEEPSEEK_API_KEY || env.DEEPSEEK_API_KEY;
+const key = process.env.LLM_API_KEY || env.LLM_API_KEY;
 if (!key) throw new Error("缺少模型密钥");
 const input = option("input", "data/evaluation/results/agent-online.json");
 const report = JSON.parse(await fs.readFile(path.resolve(root, input), "utf8"));
@@ -18,7 +18,7 @@ for (const item of report.rows.slice(0, limit)) {
     content: s.content,
   }));
   const response = await fetch(
-    (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/$/, "") +
+    (env.LLM_BASE_URL || "https://tokendance.space/gateway/v1").replace(/\/$/, "") +
       "/chat/completions",
     {
       method: "POST",
@@ -26,11 +26,11 @@ for (const item of report.rows.slice(0, limit)) {
         Authorization: "Bearer " + key,
         "Content-Type": "application/json",
       },
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(90000),
       body: JSON.stringify({
-        model: env.DEEPSEEK_MODEL || "deepseek-chat",
+        model: env.LLM_MODEL || "deepseek-v4.1-flash",
         temperature: 0,
-        max_tokens: 600,
+        max_tokens: Number(env.MODEL_MAX_TOKENS || 4096),
         response_format: { type: "json_object" },
         messages: [
           {

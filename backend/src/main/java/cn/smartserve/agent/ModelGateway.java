@@ -20,14 +20,20 @@ public class ModelGateway {
   @Value("${smartserve.llm-enabled}")
   public boolean enabled;
 
-  @Value("${smartserve.deepseek-key}")
+  @Value("${smartserve.model-api-key}")
   String key;
 
-  @Value("${smartserve.deepseek-url}")
+  @Value("${smartserve.model-base-url}")
   String url;
 
-  @Value("${smartserve.deepseek-model}")
+  @Value("${smartserve.model-name}")
   String modelName;
+
+  @Value("${smartserve.model-provider}")
+  public String provider;
+
+  @Value("${smartserve.model-max-tokens}")
+  int maxTokens;
 
   @Value("${smartserve.model-timeout-seconds}")
   int timeout;
@@ -52,7 +58,7 @@ public class ModelGateway {
   void init() {
     if (enabled) {
       if (key.isBlank()) throw new IllegalStateException(
-        "LLM_ENABLED=true 时需要配置 DEEPSEEK_API_KEY"
+        "LLM_ENABLED=true 时需要配置 LLM_API_KEY"
       );
       // In LangChain4j 0.36.2 this setting is the total SDK attempt count. Retries below are explicit and traceable.
       model = OpenAiChatModel.builder()
@@ -62,7 +68,7 @@ public class ModelGateway {
         .temperature(0.0)
         .timeout(Duration.ofSeconds(timeout))
         .maxRetries(1)
-        .maxTokens(1200)
+        .maxTokens(maxTokens)
         .logRequests(false)
         .logResponses(false)
         .build();

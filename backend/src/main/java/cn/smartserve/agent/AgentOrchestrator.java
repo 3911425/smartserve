@@ -761,7 +761,7 @@ public class AgentOrchestrator {
     result.put("validation", validation);
     result.put(
       "modelMode",
-      llm.enabled ? "DeepSeek / 受控工具决策" : "离线确定性流程"
+      llm.enabled ? llm.provider + " / 受控工具决策" : "离线确定性流程"
     );
     result.put(
       "needsEscalation",

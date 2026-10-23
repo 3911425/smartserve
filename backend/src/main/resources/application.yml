@@ -45,11 +45,13 @@ smartserve:
   agent-max-turns: ${AGENT_MAX_TURNS:5}
   agent-max-calls: ${AGENT_MAX_CALLS:10}
   model-timeout-seconds: ${MODEL_TIMEOUT_SECONDS:45}
+  model-max-tokens: ${MODEL_MAX_TOKENS:4096}
   model-retries: ${MODEL_RETRIES:1}
   llm-enabled: ${LLM_ENABLED:false}
-  deepseek-key: ${DEEPSEEK_API_KEY:}
-  deepseek-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
-  deepseek-model: ${DEEPSEEK_MODEL:deepseek-chat}
+  model-api-key: ${LLM_API_KEY:}
+  model-base-url: ${LLM_BASE_URL:https://tokendance.space/gateway/v1}
+  model-name: ${LLM_MODEL:deepseek-v4.1-flash}
+  model-provider: ${LLM_PROVIDER:tokendance}
   langsmith-key: ${LANGSMITH_API_KEY:}
   langsmith-url: ${LANGSMITH_ENDPOINT:https://api.smith.langchain.com}
   langsmith-project: ${LANGSMITH_PROJECT:smartserve}
