@@ -53,40 +53,26 @@ async function submit() {
 </script>
 <template>
   <main class="auth-page">
-    <section class="auth-story">
-      <a href="#" class="brand"
-        ><span class="brand-mark"><Leaf :size="24" /></span
+    <div class="auth-backdrop" aria-hidden="true">
+      <img :src="'/files/images/smart-home-hero.png'" alt="" />
+    </div>
+    <header class="auth-header">
+      <div class="brand auth-brand">
+        <span class="brand-mark"><Leaf :size="24" /></span
         ><span
           >SmartServe <em>智服</em
           ><small>SMART HOME, THOUGHTFUL SERVICE</small></span
-        ></a
+        >
+      </div>
+      <span class="auth-header-note"
+        ><span class="live-dot"></span>智能家居 · 一站式服务</span
       >
-      <div class="auth-story-copy">
-        <span class="eyebrow">为生活里的小问题，找到好答案</span>
-        <h1>聪明一点的家，<br />贴心一点的服务。</h1>
-        <p>
-          从选购到日常使用，从一笔订单到一次安心的回应。<br />你的智能家居生活，在这里连起来。
-        </p>
-      </div>
-      <div class="auth-visual">
-        <img
-          :src="'/files/images/smart-home-hero.png'"
-          alt="温暖的智能家居与设备组合"
-        />
-        <div class="auth-visual-note">
-          <span class="live-dot"></span>产品、订单与服务，都在你的空间里
-        </div>
-      </div>
-      <div class="auth-values">
-        <span><ShieldCheck :size="16" /> 资料有据可查</span
-        ><span><MessageCircle :size="16" /> 智能与人工协作</span
-        ><span><PackageCheck :size="16" /> 服务进度可跟进</span>
-      </div>
-    </section>
+    </header>
     <section class="auth-form-panel">
       <div class="auth-form-wrap">
         <div class="auth-topline">
-          WELCOME TO SMARTSERVE <span>02 / 生活与服务</span>
+          <span class="auth-card-icon"><Leaf :size="20" /></span>
+          <span>SMARTSERVE · 智能生活服务空间</span>
         </div>
         <h2>{{ title }}</h2>
         <p class="muted auth-subtitle">
@@ -184,9 +170,14 @@ async function submit() {
         </p>
         <div class="auth-footer">
           <span class="tiny-leaf"><Leaf :size="15" /></span
-          >安心的家，从一次贴心的回应开始。
+          >从选购、订单到客服，每一步都有人认真回应。
         </div>
       </div>
     </section>
+    <footer class="auth-values">
+      <span><ShieldCheck :size="16" /> 资料有据可查</span
+      ><span><MessageCircle :size="16" /> 智能与人工协作</span
+      ><span><PackageCheck :size="16" /> 服务进度可跟进</span>
+    </footer>
   </main>
 </template>
