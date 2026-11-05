@@ -1,14 +1,14 @@
 {
   "release": "2.0.0",
   "businessRulesVersion": "2.1-20261023",
-  "reportDate": "2026-10-23",
-  "evidencePolicy": "This summary separates prior code acceptance from the retrieval and offline Agent regression rerun during the documentation update. Refer to measuredAt and scope in each source report.",
+  "reportDate": "2026-11-05",
+  "evidencePolicy": "Nov 5: 45 H2/model-contract tests, frontend build, retrieval, offline tasks and three desktop pages rerun. PostgreSQL/Redis/RabbitMQ/Docker/online model results remain historical Oct 23 evidence.",
   "documentationUpdate": {
-    "applicationCodeChanged": false,
+    "applicationCodeChanged": true,
+    "scope": "Display names, public documentation and fictional knowledge platform names; business protocol unchanged.",
     "paidModelCalls": 0,
-    "isolatedEvaluationServerStopped": true,
     "currentMarkdownDocuments": 15,
-    "localMarkdownLinksChecked": 67,
+    "localMarkdownLinksChecked": 58,
     "brokenLocalLinks": 0
   },
   "backend": {
@@ -18,39 +18,46 @@
       "passed": 45,
       "failures": 0,
       "errors": 0,
-      "evidence": ".local/logic-fix-final.log"
+      "evidence": ".local/publication/backend-verify.log",
+      "measuredDate": "2026-11-05",
+      "conditionallySkipped": 45
     },
     "nativePostgres": {
       "passed": 43,
-      "evidence": "business-modes.json"
+      "evidence": "business-modes.json",
+      "measuredDate": "2026-10-23"
     },
     "dockerPostgres": {
       "passed": 43,
-      "evidence": "business-modes.json"
+      "evidence": "business-modes.json",
+      "measuredDate": "2026-10-23"
     },
     "redisRabbit": {
       "passed": 2,
-      "evidence": "business-modes.json"
+      "evidence": "business-modes.json",
+      "measuredDate": "2026-10-23"
     },
     "note": "The same 43 core tests were repeated on different databases; do not add them as different tests."
   },
   "frontend": {
     "typecheckAndBuild": "passed",
     "largeChunkWarning": true,
-    "desktopScreenshots": "docs/screenshots/*-v21.png",
+    "desktopScreenshots": "docs/screenshots/{auth,store,orders}.png",
     "fullBrowserMobileAcceptance": "not_completed",
-    "evidence": ".local/docker-v21-build.log"
+    "evidence": ".local/publication/frontend-build.log",
+    "measuredDate": "2026-11-05",
+    "desktopBrowserErrors": 0
   },
   "retrieval": {
-    "measuredAt": "2026-10-23T11:02:45.877Z",
+    "measuredAt": "2026-11-05T08:13:36.496Z",
     "datasetVersion": "2.0-20261022",
     "knowledge": {
-      "revision": "07817cd37cc8",
-      "chunks": 46,
-      "reranker": "语义/BM25/RRF加权融合（非神经重排）",
       "embeddingModel": "bge-small-zh (ONNX, 512维)",
-      "vectorStore": "H2 / JVM余弦（本地演示）",
-      "documents": 4
+      "reranker": "语义/BM25/RRF加权融合（非神经重排）",
+      "chunks": 46,
+      "revision": "2b16ecec24b4",
+      "documents": 4,
+      "vectorStore": "H2 / JVM余弦（本地演示）"
     },
     "metrics": [
       {
@@ -91,9 +98,10 @@
     "cases": 32,
     "modelCalls": 0,
     "datasetVersion": "2.1-20261023",
-    "knowledgeRevision": "07817cd37cc8",
+    "knowledgeRevision": "2b16ecec24b4",
     "evidence": "agent-offline.json",
-    "limitation": "Structural, keyword, tool and financial-boundary assertions, not online semantic task accuracy."
+    "limitation": "Structural, keyword, tool and financial-boundary assertions, not online semantic task accuracy.",
+    "measuredAt": "2026-11-05T08:13:54.043Z"
   },
   "businessHttp": {
     "passed": 11,
@@ -129,7 +137,7 @@
     "nativeAndDocker": "dump_and_catalog_checked",
     "restoreDrill": "not_completed"
   },
-  "remoteGithubCi": "not_run_for_this_update",
+  "remoteGithubCi": "Check repository Actions for the exact pushed commit; no remote success inferred from local runs.",
   "historicalEvidence": {
     "previousV2Summary": "baseline-v2/validation-summary.json",
     "previousV2Retrieval": "baseline-v2/retrieval-all.json",
@@ -137,7 +145,8 @@
     "beforeDocsKnowledge": "baseline-2.1-before-docs/retrieval-all.json",
     "legacyOfficialOnline": "agent-online.json",
     "legacyJudge": "judge.json",
-    "legacyTraceReadback": "remote-traces.json"
+    "legacyTraceReadback": "remote-traces.json",
+    "oct23Summary": "baseline-20261023/validation-summary.json"
   },
   "pending": [
     "Full online task and judge evaluation for the current model and updated knowledge",
@@ -145,5 +154,6 @@
     "Full browser and mobile workflows",
     "Backup restore drill",
     "Real payment and carrier integrations"
-  ]
+  ],
+  "project": "ServicePilot"
 }

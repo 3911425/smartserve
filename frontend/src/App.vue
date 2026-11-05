@@ -44,7 +44,7 @@ const tabs = computed(() =>
     : [
         { id: "store", label: "精选好物", icon: ShoppingBag },
         { id: "orders", label: "我的订单", icon: Package },
-        { id: "chat", label: "智服客服", icon: MessageCircle },
+        { id: "chat", label: "智能客服", icon: MessageCircle },
       ],
 );
 async function initialize() {
@@ -121,7 +121,7 @@ onUnmounted(() =>
 <template>
   <div v-if="booting" class="loading-page">
     <Leaf :size="36" />
-    <p>正在准备你的智服空间…</p>
+    <p>正在准备你的服务空间…</p>
   </div>
   <template v-else-if="!user"
     ><div v-if="connectionError" class="connection-banner" role="alert">
@@ -138,8 +138,8 @@ onUnmounted(() =>
         @click.prevent="tab = user.role === 'ADMIN' ? 'admin' : 'store'"
         ><span class="brand-mark"><Leaf :size="24" /></span
         ><span
-          >SmartServe <em>智服</em
-          ><small>SMART HOME, THOUGHTFUL SERVICE</small></span
+          >ServicePilot <em>服务助手</em
+          ><small>AGENT-ASSISTED SERVICE</small></span
         ></a
       >
       <nav class="navigation" aria-label="主导航">
@@ -218,7 +218,7 @@ onUnmounted(() =>
       /><OpsView v-if="tab === 'ops' && user.role === 'ADMIN'" />
     </main>
     <footer class="footer">
-      <span><Leaf :size="14" /> SmartServe 智服 · 从选购到安心使用</span
+      <span><Leaf :size="14" /> ServicePilot · 面向电商售后的 Agent 协同服务</span
       ><span>模拟交易与配送体验，不涉及真实资金或发货</span>
     </footer>
     <ProfileDialog

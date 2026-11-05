@@ -1,56 +1,120 @@
-# SmartServe 智服
+# ServicePilot
 
-文档更新：2026-10-23 · 应用版本 `2.0.0` · 业务规则版本 `2.1-20261023`。应用包名仍是 `smartserve-backend-2.0.0.jar`，业务规则版本用于检查前后端是否匹配，两者用途不同。
+**面向电商售后的 Agent 协同服务系统**
 
-以 AI 客服为核心的智能家居商城与服务平台。客户可以注册、使用模拟钱包购买商品、查询订单、申请售后；管理员按客户处理订单、退款和人工服务。产品与售后 Agent 通过受限工具自主查询，资金变动始终由确定性事务处理。
+[![Build and test](https://github.com/3911425/smartserve/actions/workflows/ci.yml/badge.svg)](https://github.com/3911425/smartserve/actions/workflows/ci.yml)
+[![Java](https://img.shields.io/badge/Java-17%20%2F%2021-437291)](backend/pom.xml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-这是可运行、可评测的模块化单体项目，**支付、物流、商品品牌均为模拟业务**。没有真实支付、真实承运商、邮件找回、多模态或微服务，不以框架数量代替业务完成度。
+ServicePilot 以智能家居商品为演示场景，将知识问答、订单查询、售后建议与人工审核连接起来。产品和售后 Agent 可以选择受限工具获取依据；取消、退款和资金变动由确定性业务服务处理，保留用户确认、权限校验和版本历史。
 
-## 从这里开始
+项目采用 Java 模块化单体架构，包含可运行的模拟交易、Agent 工具循环、RAG、任务恢复和可复现评测。支付、物流与商品品牌均为模拟数据，未连接真实支付机构或承运商。
 
-1. [启动与账号](docs/01-启动与账号.md)：只记住三种常用启动方式。
-2. [产品与业务规则](docs/02-产品与业务规则.md)：先用客户和管理员走通一个闭环。
-3. [项目学习实战手册](docs/项目学习实战手册.md)：按源码、调试、实验和验收学习。
-4. [项目发展路线](docs/项目发展路线.md)：当前版本如何冻结，冬实习后如何继续。
-5. [评测与验证报告](docs/06-评测与验证报告.md)：看实际通过哪些验证、指标怎样计算、还有什么没测。
+[快速启动](#快速启动) · [架构与数据模型](docs/03-架构与数据模型.md) · [Agent / RAG](docs/04-Agent与RAG实现.md) · [测试与评测](docs/06-评测与验证报告.md) · [完整文档](docs/README.md)
 
-需要深入时读：[架构与数据模型](docs/03-架构与数据模型.md) → [Agent 与 RAG](docs/04-Agent与RAG实现.md) → [接口与权限](docs/05-接口与权限.md) → [运维与故障演练](docs/07-运维与故障演练.md) → [学习验收与面试追问](docs/学习验收题与面试追问.md)。上面是全部现行项目说明文档；旧的“业务一致性修复与验收”已合并进业务规则、验证报告和运维文档。
+## 业务与工程设计
 
-应用实际检索的四份资料：[产品手册](data/knowledge/产品手册.md)、[客户 FAQ](data/knowledge/FAQ.md)、[售后政策](data/knowledge/售后政策.md)、[交易与账号](data/knowledge/交易与账号.md)。它们是虚构品牌的客服知识，不是额外实现了设备 App、云录像或线下仓库。
+| 关注点 | 实现方式 |
+| --- | --- |
+| 模型建议与交易权限分离 | `prepareRefund` / `prepareCancellation` 只读；客户确认后提交业务请求，管理员审核后才返还模拟余额 |
+| 统一售后边界 | `OrderServicePolicy` 为页面、工具和写接口提供统一规则；待发货取消、运输中人工核验、有效签收窗口内退货 |
+| 交易正确性 | 条件扣库存/余额、数据库事务、请求键及内容校验、唯一资金流水；撤回/驳回可重提，旧版本不能确认新申请 |
+| 可追溯知识回答 | 本地 BGE-small-zh 512维，向量/BM25/RRF融合，产品范围过滤、证据门槛、引用及工具事实核验 |
+| 可恢复客服任务 | 本地工作池或RabbitMQ，DB持久任务、CAS领取、租约与检查点；SSE按事件游标续读 |
+| 可观测与可评测 | 逐次模型请求记录、已知Token/耗时、本地AgentOps、可选LangSmith导出；检索集和任务集分别回归 |
 
-## 本机快速启动
+## 一条售后链路
 
-需要 Java 17/21、Maven 3.9、Node.js 22；本机配置使用 PostgreSQL 时先确认服务运行。Docker 不是这种方式的前提。
+1. 客户注册后获得一次性模拟余额，购买商品，生成持久化的待发货/运输中/已送达场景。
+2. 客户询问“这笔订单能退吗”，售后Agent查询本人订单、核验规则，给出依据和建议。
+3. 待发货订单由客户核对后取消；已送达且在窗口内的订单可填写原因、准备申请并确认当前版本。
+4. 管理员审核，业务事务处理状态、钱包与流水；撤回、驳回、重提和审核均留历史。
+5. 无法自动处理的问题由客户确认提交服务单，管理员处理结果回写原会话。
 
-```powershell
-cd E:\SmartServe
-powershell -ExecutionPolicy Bypass -File scripts/start.ps1
+明确完整订单号的纯物流查询可走确定性节点，**无需远程模型请求**。模型开启时，产品和售后领域使用有界工具决策循环；并非每个图节点都是自主Agent。
+
+## 系统结构
+
+```mermaid
+flowchart LR
+  UI[Vue 客户端与管理工作台] --> API[Spring Boot / Cookie / CSRF]
+  API --> BIZ[账户与确定性交易服务]
+  BIZ --> DB[(H2 或 PostgreSQL)]
+  API --> RUN[持久任务与事件]
+  RUN --> QUEUE[本地工作池或 RabbitMQ]
+  QUEUE --> GRAPH[LangGraph4j 编排]
+  GRAPH --> MODEL[LangChain4j / OpenAI兼容模型]
+  GRAPH --> MCP[HTTP MCP / 工具白名单]
+  MCP --> BIZ
+  MCP --> RAG[BGE / BM25 / 融合与证据门槛]
+  RAG --> DB
+  RAG --> CACHE[(可选 Redis 检索缓存)]
+  GRAPH --> OPS[AgentOps / 可选 LangSmith]
 ```
 
-访问 http://localhost:5173 。脚本会初始化本地凭证、构建后端、按需安装前端依赖，并启动前后端两个进程。首次加载 BGE 索引需要等待，日志在 `.local/`。当前机器的 `.env` 继续保留原有数据库和模型配置；没有把 API Key 写入代码。
+后端及Agent均用Java；Spring Boot 3.5.6、LangChain4j 0.36.2、LangGraph4j 1.8.20；持久化为JdbcTemplate与Flyway。前端为Vue 3、TypeScript、Element Plus、Vite 6。默认远程模型配置为TokenDance的 `deepseek-v4.1-flash`，可替换兼容端点；Embedding在本地执行。
 
-首次管理员账号为 `.env` 中的 `BOOTSTRAP_ADMIN_USER`，密码在 `BOOTSTRAP_ADMIN_PASSWORD`；历史客户 `demo` 的初始密码在 `BOOTSTRAP_CUSTOMER_PASSWORD`。新客户可以直接注册。已存在数据库中的密码不会被环境文件覆盖，后续改密后以新密码为准。
+## 页面预览
+
+以下为隔离H2环境的离线演示，轨迹中的0次模型请求与实际配置一致。
+
+![ServicePilot 客服与知识引用](docs/screenshots/chat.png)
+
+![ServicePilot AgentOps执行时间线](docs/screenshots/agentops.png)
+
+<details>
+<summary>查看登录、商城与订单页面</summary>
+
+![ServicePilot 登录](docs/screenshots/auth.png)
+
+![ServicePilot 商城与客服入口](docs/screenshots/store.png)
+
+![ServicePilot 订单与售后](docs/screenshots/orders.png)
+
+</details>
+
+## 快速启动
+
+### Docker Compose
+
+以下命令适用于Windows PowerShell，需先启动Docker Desktop。默认离线模式无需模型Key，保留本地BGE、检索、工具与业务流程。
 
 ```powershell
+git clone https://github.com/3911425/smartserve.git
+cd smartserve
+powershell -ExecutionPolicy Bypass -File scripts/init-env.ps1
+docker compose --profile app up -d --build
+```
+
+访问 **http://localhost:5173**。管理员用户名默认 `admin`，初始化密码读取本地 `.env` 中 `BOOTSTRAP_ADMIN_PASSWORD` 的值；客户可自行注册。初始化只创建缺失账号，不覆盖已有数据库中的密码。
+
+Linux/macOS可复制 `.env.example` 为 `.env`，填写四项账号/服务秘密后执行同一Compose命令，详见[启动与账号](docs/01-启动与账号.md)。镜像与依赖首次下载需要网络，BGE加载完成后才可使用检索。
+
+```powershell
+docker compose --profile app ps
+docker compose --profile app logs -f backend
+docker compose --profile app down
+```
+
+`down`保留数据卷；添加 `-v` 会删除卷。项目PG/Redis映射到本机15432/16379，避免占用已有5432/6379实例。
+
+### 无Docker体验
+
+安装Java 17/21、Maven 3.9、Node.js 22后，在仓库根目录执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start.ps1 -Mode demo -Offline
+# 停止
 powershell -ExecutionPolicy Bypass -File scripts/stop.ps1
 ```
 
-## 实现范围
+该方式使用H2文件库、JVM余弦与本地工作池。连接本机PG、Docker基础设施或真实模型的说明见[运行指南](docs/01-启动与账号.md)。
 
-| 部分 | 已实现                                                                                                 |
-| ---- | ------------------------------------------------------------------------------------------------------ |
-| 账户 | BCrypt、可撤销 Cookie 会话、CSRF、登录失败锁定、资料与密码、客户密码重置                               |
-| 交易 | 一次性模拟余额、幂等购买、随机且持久化的配送场景、统一售后资格、取消、退款确认/撤回/重提/审核、版本历史 |
-| 客服 | 产品/售后原生工具调用循环、确定性订单节点、LangGraph4j 检查点、真实 HTTP MCP、证据审查、人工服务单     |
-| RAG  | 本地 BGE-small-zh 512 维、分块及版本元数据、BM25/向量/混合检索、产品范围过滤、证据门槛、Redis 结果缓存 |
-| 运行 | 本地工作池或 RabbitMQ、持久任务与租约、恢复/取消/SSE、每次模型请求遥测、脱敏 LangSmith 导出、答案反馈  |
-| 评测 | 事务/权限/并发集成测试、SDK 工具调用协议测试、固定检索/任务集、自定义模型评审脚本                      |
+## 验证与复现
 
-Java 后端和 Agent 均用 Java：Spring Boot、JdbcTemplate、LangChain4j、LangGraph4j；前端使用 Vue 3 / TypeScript。当前对话模型通过 TokenDance 调用 `deepseek-v4.1-flash`，向量模型为本地 BGE-small-zh，不消耗远程对话 Token。
+本次H2回归通过43项核心测试和2项模型协议测试，离线Agent回归32/32通过。历史基线包含43项核心测试在H2和两套PostgreSQL中的回归、2项模型协议测试、2项基础设施测试，以及32条离线Agent结构回归。相同用例跨数据库执行不重复计算为不同测试；模型协议桩也不代表真实模型质量。
 
-最新结果统一看[评测与验证报告](docs/06-评测与验证报告.md)。原始历史记录保留作对照，并明确标记模型和知识版本；AgentOps 的轨迹不能替代质量评测。
-
-## 构建与验证
+固定检索集为72条（56正例、16负例），2026-11-05的混合Recall@5为98.21%，负例误接受0/16。该数字是小规模自建集的检索指标，**不是答案准确率**。当前发布验证及知识revision、指标定义、原始记录见[评测报告](docs/06-评测与验证报告.md)；CI会重新构建并执行离线回归。
 
 ```powershell
 cd backend
@@ -60,14 +124,12 @@ npm ci
 npm run build
 ```
 
-默认测试使用隔离 H2 和本地模型协议桩，不消耗远程模型额度。两套 PostgreSQL 和 Redis/RabbitMQ 的一致性回归使用 `scripts/test-business-modes.ps1`，前置条件、隔离方式和评测命令见验证报告。构建成功后程序会退出，日常运行仍用启动脚本。
+运行检索/任务评测需隔离服务，复现命令见报告。默认不使用付费模型；在线评测需显式开启并单独统计调用。
 
-代码入口：[Java 后端](backend/src/main/java/cn/smartserve)、[前端 App](frontend/src/App.vue)、[数据库迁移](backend/src/main/resources/db/migration)、[评测资料](data/evaluation)。密钥、私有密码、日志和数据库备份放在被忽略的 `.env` / `.local`，不要提交到 Git。
+## 文档与边界
 
-## 页面预览
+从[文档索引](docs/README.md)进入业务、架构、Agent/RAG、API、评测、部署和[技术路线](docs/ROADMAP.md)。
 
-![登录页](docs/screenshots/auth-v21.png)
+当前未实现真实支付/物流、部分退款、公开在线演示服务、多模态和微服务；未完成生产容量、多实例故障和备份恢复验收。领域循环中断后可能重跑节点，外部模型不保证恰好调用一次，取消在途请求也不保证零费用。
 
-![商城](docs/screenshots/store-v21.png)
-
-![订单概览](docs/screenshots/orders-v21.png)
+项目原名SmartServe；为兼容已有简历链接、配置和数据，仓库路径 `smartserve`、Java包名、环境变量及Docker卷名沿用原标识。代码与原创资料使用[MIT许可证](LICENSE)。

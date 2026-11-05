@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>3.5.6</version><relativePath/></parent>
   <groupId>cn.smartserve</groupId><artifactId>smartserve-backend</artifactId><version>2.0.0</version>
-  <name>SmartServe</name><description>Accountable customer service agents and transactional commerce</description>
+  <name>ServicePilot</name><description>Agent-assisted e-commerce service with accountable business workflows</description>
   <properties><java.version>21</java.version><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding><langchain4j.version>0.36.2</langchain4j.version><langgraph4j.version>1.8.20</langgraph4j.version></properties>
   <dependencies>
     <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-crypto</artifactId></dependency>

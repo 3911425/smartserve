@@ -489,7 +489,7 @@ onMounted(load);
                 ? "客户"
                 : message.role === "human"
                   ? "人工专员"
-                  : "智服"
+                  : "ServicePilot"
             }}</b>
             <p>{{ message.content }}</p>
           </div>

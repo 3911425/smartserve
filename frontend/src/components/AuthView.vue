@@ -21,7 +21,7 @@ const username = ref(""),
   displayName = ref(""),
   confirmation = ref("");
 const title = computed(() =>
-  registering.value ? "开启你的智服空间" : "欢迎回来",
+  registering.value ? "开启你的服务空间" : "欢迎回来",
 );
 async function submit() {
   if (busy.value) return;
@@ -60,8 +60,8 @@ async function submit() {
       <div class="brand auth-brand">
         <span class="brand-mark"><Leaf :size="24" /></span
         ><span
-          >SmartServe <em>智服</em
-          ><small>SMART HOME, THOUGHTFUL SERVICE</small></span
+          >ServicePilot <em>服务助手</em
+          ><small>AGENT-ASSISTED SERVICE</small></span
         >
       </div>
       <span class="auth-header-note"
@@ -72,7 +72,7 @@ async function submit() {
       <div class="auth-form-wrap">
         <div class="auth-topline">
           <span class="auth-card-icon"><Leaf :size="20" /></span>
-          <span>SMARTSERVE · 智能生活服务空间</span>
+          <span>SERVICEPILOT · 智能客户服务</span>
         </div>
         <h2>{{ title }}</h2>
         <p class="muted auth-subtitle">

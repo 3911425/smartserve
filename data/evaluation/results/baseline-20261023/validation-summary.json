@@ -1,0 +1,149 @@
+{
+  "release": "2.0.0",
+  "businessRulesVersion": "2.1-20261023",
+  "reportDate": "2026-10-23",
+  "evidencePolicy": "This summary separates prior code acceptance from the retrieval and offline Agent regression rerun during the documentation update. Refer to measuredAt and scope in each source report.",
+  "documentationUpdate": {
+    "applicationCodeChanged": false,
+    "paidModelCalls": 0,
+    "isolatedEvaluationServerStopped": true,
+    "currentMarkdownDocuments": 15,
+    "localMarkdownLinksChecked": 67,
+    "brokenLocalLinks": 0
+  },
+  "backend": {
+    "h2": {
+      "coreTests": 43,
+      "modelProtocolTests": 2,
+      "passed": 45,
+      "failures": 0,
+      "errors": 0,
+      "evidence": ".local/logic-fix-final.log"
+    },
+    "nativePostgres": {
+      "passed": 43,
+      "evidence": "business-modes.json"
+    },
+    "dockerPostgres": {
+      "passed": 43,
+      "evidence": "business-modes.json"
+    },
+    "redisRabbit": {
+      "passed": 2,
+      "evidence": "business-modes.json"
+    },
+    "note": "The same 43 core tests were repeated on different databases; do not add them as different tests."
+  },
+  "frontend": {
+    "typecheckAndBuild": "passed",
+    "largeChunkWarning": true,
+    "desktopScreenshots": "docs/screenshots/*-v21.png",
+    "fullBrowserMobileAcceptance": "not_completed",
+    "evidence": ".local/docker-v21-build.log"
+  },
+  "retrieval": {
+    "measuredAt": "2026-10-23T11:02:45.877Z",
+    "datasetVersion": "2.0-20261022",
+    "knowledge": {
+      "revision": "07817cd37cc8",
+      "chunks": 46,
+      "reranker": "语义/BM25/RRF加权融合（非神经重排）",
+      "embeddingModel": "bge-small-zh (ONNX, 512维)",
+      "vectorStore": "H2 / JVM余弦（本地演示）",
+      "documents": 4
+    },
+    "metrics": [
+      {
+        "strategy": "vector",
+        "positive": 56,
+        "recallAt5": 0.8928571428571429,
+        "mrrAt5": 0.5854166666666668,
+        "acceptedRelevantCoverage": 0.8928571428571429,
+        "negative": 16,
+        "falseAccepted": 0,
+        "falseAcceptRate": 0
+      },
+      {
+        "strategy": "bm25",
+        "positive": 56,
+        "recallAt5": 0.9642857142857143,
+        "mrrAt5": 0.7595238095238095,
+        "acceptedRelevantCoverage": 0.9642857142857143,
+        "negative": 16,
+        "falseAccepted": 0,
+        "falseAcceptRate": 0
+      },
+      {
+        "strategy": "hybrid",
+        "positive": 56,
+        "recallAt5": 0.9821428571428571,
+        "mrrAt5": 0.7639880952380952,
+        "acceptedRelevantCoverage": 0.9821428571428571,
+        "negative": 16,
+        "falseAccepted": 0,
+        "falseAcceptRate": 0
+      }
+    ],
+    "evidence": "retrieval-all.json"
+  },
+  "offlineTasks": {
+    "passed": 32,
+    "cases": 32,
+    "modelCalls": 0,
+    "datasetVersion": "2.1-20261023",
+    "knowledgeRevision": "07817cd37cc8",
+    "evidence": "agent-offline.json",
+    "limitation": "Structural, keyword, tool and financial-boundary assertions, not online semantic task accuracy."
+  },
+  "businessHttp": {
+    "passed": 11,
+    "evidence": "business-smoke.json"
+  },
+  "currentProviderSmoke": {
+    "provider": "tokendance",
+    "configuredModel": "deepseek-v4.1-flash",
+    "cases": 1,
+    "applicationModelCalls": 5,
+    "knownTokens": 5347,
+    "tools": [
+      "queryOrderStatus",
+      "prepareCancellation"
+    ],
+    "financialWrites": false,
+    "evidence": "fulfillment-online-smoke.json",
+    "scope": "Earlier read-only cancellation smoke before this knowledge update, not a full evaluation of the updated knowledge."
+  },
+  "docker": {
+    "sourceBuild": "passed_with_dependency_cache",
+    "fiveServiceRuntime": "passed",
+    "evidence": ".local/docker-v21-build.log"
+  },
+  "runtimeModes": {
+    "native": "passed",
+    "hybrid": "passed",
+    "docker": "passed",
+    "evidence": "runtime-modes.json",
+    "scope": "Earlier login, session, permissions and business version acceptance; native/hybrid share JAR; Docker compiles independently."
+  },
+  "backups": {
+    "nativeAndDocker": "dump_and_catalog_checked",
+    "restoreDrill": "not_completed"
+  },
+  "remoteGithubCi": "not_run_for_this_update",
+  "historicalEvidence": {
+    "previousV2Summary": "baseline-v2/validation-summary.json",
+    "previousV2Retrieval": "baseline-v2/retrieval-all.json",
+    "previousV2Offline": "baseline-v2/agent-offline.json",
+    "beforeDocsKnowledge": "baseline-2.1-before-docs/retrieval-all.json",
+    "legacyOfficialOnline": "agent-online.json",
+    "legacyJudge": "judge.json",
+    "legacyTraceReadback": "remote-traces.json"
+  },
+  "pending": [
+    "Full online task and judge evaluation for the current model and updated knowledge",
+    "Production capacity, multi-instance fault recovery and long-running stability",
+    "Full browser and mobile workflows",
+    "Backup restore drill",
+    "Real payment and carrier integrations"
+  ]
+}

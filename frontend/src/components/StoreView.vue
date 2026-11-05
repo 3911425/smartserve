@@ -109,14 +109,14 @@ async function pay() {
       <div class="hero-copy">
         <span class="eyebrow">A LITTLE SMARTER. A LOT MORE HOME.</span>
         <h1>家的每个细节，<br />都值得<span>聪明一点。</span></h1>
-        <p>选得明白，用得安心。<br />从选购到使用，让智服陪你解决每个问题。</p>
+        <p>选得明白，用得安心。<br />从选购到使用，让客服助手陪你解决每个问题。</p>
         <button
           class="primary"
           @click="
             emit('ask', '我想给家里搭配一套智能家居，请先了解我的需求再推荐。')
           "
         >
-          <MessageCircle :size="17" />让智服帮我选<ArrowUpRight :size="17" />
+          <MessageCircle :size="17" />让客服助手帮我选<ArrowUpRight :size="17" />
         </button>
       </div>
       <span class="hero-caption">THOUGHTFUL THINGS, FOR EVERYDAY LIVING.</span>
@@ -201,7 +201,7 @@ async function pay() {
                 emit('ask', `请介绍${p.name}的功能、联网要求和使用限制。`)
               "
             >
-              <MessageCircle :size="16" />咨询智服</button
+              <MessageCircle :size="16" />咨询客服</button
             ><button
               class="primary"
               :disabled="user.role === 'ADMIN' || p.stock < 1"
@@ -248,7 +248,7 @@ async function pay() {
               selected = null;
             "
           >
-            咨询智服</button
+            咨询客服</button
           ><button
             class="primary"
             :disabled="user.role === 'ADMIN' || selected.stock < 1"

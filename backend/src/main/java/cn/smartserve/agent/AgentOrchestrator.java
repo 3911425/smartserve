@@ -385,7 +385,7 @@ public class AgentOrchestrator {
       ? "产品与使用咨询专家"
       : "客户服务与售后专家";
     String system =
-      "你是SmartServe的" +
+      "你是ServicePilot的" +
       role +
       "。你必须自主判断信息缺口，选择允许的工具，读取结果后决定继续查询、追问或结束。最多" +
       maxTurns +

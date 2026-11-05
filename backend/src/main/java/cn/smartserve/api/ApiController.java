@@ -53,7 +53,7 @@ public class ApiController {
   Object status() {
     return Map.of(
       "name",
-      "SmartServe",
+      "ServicePilot",
       "version",
       "2.0.0",
       "businessRulesVersion",

@@ -282,7 +282,7 @@ onUnmounted(() => {
     <aside class="conversation-sidebar">
       <div class="sidebar-heading">
         <span class="eyebrow">YOUR SERVICE SPACE</span>
-        <h2>智服会话</h2>
+        <h2>服务会话</h2>
         <button class="secondary" :disabled="sending" @click="newConversation">
           <Plus :size="16" />开始新会话
         </button>
@@ -332,7 +332,7 @@ onUnmounted(() => {
       <div class="chat-heading">
         <div class="service-avatar"><Leaf :size="23" /></div>
         <div>
-          <h2>智服 · 你的家居顾问</h2>
+          <h2>ServicePilot · 你的服务助手</h2>
           <p><i class="live-dot"></i>选购、使用与售后，在这里继续</p>
         </div>
         <div class="chat-heading-actions">
@@ -392,7 +392,7 @@ onUnmounted(() => {
                   ? user.displayName
                   : m.role === "human"
                     ? "人工服务专员"
-                    : "智服"
+                    : "ServicePilot"
               }}
               <small>{{ date(m.createdAt) }}</small></span
             >
@@ -498,7 +498,7 @@ onUnmounted(() => {
           maxlength="2000"
           rows="2"
           placeholder="描述产品、订单或使用问题，Shift + Enter 换行"
-          aria-label="发送给智服的问题"
+          aria-label="发送给客服助手的问题"
           :disabled="sending"
           @keydown.enter.exact.prevent="send"
         ></textarea>

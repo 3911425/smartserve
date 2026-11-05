@@ -63,7 +63,7 @@ public class TraceExporter {
         body.put("id", trace);
         body.put("trace_id", trace);
         body.put("dotted_order", dotted);
-        body.put("name", "SmartServe.V2.CustomerService");
+        body.put("name", "ServicePilot.CustomerService");
         body.put("run_type", "chain");
         body.put("session_name", project);
         body.put("start_time", start);
@@ -105,7 +105,7 @@ public class TraceExporter {
           );
           span.put(
             "name",
-            event.getOrDefault("agent", "SmartServe") + "." + event.get("type")
+            event.getOrDefault("agent", "ServicePilot") + "." + event.get("type")
           );
           span.put(
             "run_type",

@@ -92,7 +92,7 @@ function updated(order: Entity) {
     <div v-else-if="!orders.length" class="empty empty-card">
       <Package :size="40" />
       <h3>这里还没有订单</h3>
-      <p>{{ status ? '当前筛选下没有订单，可以切换到全部订单。' : '选一件适合自己的好物，或让智服先帮你了解。' }}</p>
+      <p>{{ status ? '当前筛选下没有订单，可以切换到全部订单。' : '选一件适合自己的好物，或让客服助手先帮你了解。' }}</p>
       <button class="primary" @click="emit('store')">
         去看看好物<ArrowRight :size="16" />
       </button>
