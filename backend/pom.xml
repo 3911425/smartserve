@@ -23,6 +23,10 @@
     <dependency><groupId>org.bsc.langgraph4j</groupId><artifactId>langgraph4j-core</artifactId><version>${langgraph4j.version}</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
   </dependencies>
-  <build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin></plugins></build>
+  <build><plugins>
+    <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin>
+    <!-- SpringBootTest bypasses main(), which sets the application's business zone. -->
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><configuration><argLine>-Duser.timezone=Asia/Shanghai</argLine></configuration></plugin>
+  </plugins></build>
   <profiles><profile><id>local-java17</id><activation><jdk>[17,21)</jdk></activation><properties><java.version>17</java.version></properties></profile></profiles>
 </project>

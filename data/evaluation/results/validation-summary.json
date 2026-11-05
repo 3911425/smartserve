@@ -8,7 +8,7 @@
     "scope": "Display names, public documentation and fictional knowledge platform names; business protocol unchanged.",
     "paidModelCalls": 0,
     "currentMarkdownDocuments": 15,
-    "localMarkdownLinksChecked": 58,
+    "localMarkdownLinksChecked": 60,
     "brokenLocalLinks": 0
   },
   "backend": {
@@ -42,11 +42,12 @@
   "frontend": {
     "typecheckAndBuild": "passed",
     "largeChunkWarning": true,
-    "desktopScreenshots": "docs/screenshots/{auth,store,orders}.png",
+    "desktopScreenshots": "docs/screenshots/{auth,store,orders,chat,agentops}.png",
     "fullBrowserMobileAcceptance": "not_completed",
     "evidence": ".local/publication/frontend-build.log",
     "measuredDate": "2026-11-05",
-    "desktopBrowserErrors": 0
+    "desktopBrowserErrors": 0,
+    "desktopPagesChecked": 5
   },
   "retrieval": {
     "measuredAt": "2026-11-05T08:13:36.496Z",

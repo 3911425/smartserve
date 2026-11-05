@@ -92,6 +92,7 @@ jobs:
       SMARTSERVE_PARITY_PGVECTOR: "true"
       DB_USER: smartserve
       DB_PASSWORD: ci-local-password
+      REDIS_PORT: "6379"
       REDIS_PASSWORD: ""
       RABBIT_USER: smartserve
       RABBIT_PASSWORD: ci-local-password
